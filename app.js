@@ -711,12 +711,33 @@ $('#btn-templates').addEventListener('click', () => {
 });
 
 $('#templates-restore').addEventListener('click', () => {
-  const existing = new Set(state.templates.map((t) => t.name));
-  const missing = DEFAULT_TEMPLATES.filter((t) => !existing.has(t.name));
+  const missing = DEFAULT_TEMPLATES.filter((d) => !state.templates.some((t) => t.name === d.name));
+  // Mitgelieferte Vorlagen, die es inzwischen in einer neuen Fassung gibt
+  const outdated = DEFAULT_TEMPLATES.filter((d) => state.templates.some((t) => t.name === d.name
+    && (!sameValues(t.values, d.values) || !!t.askQuestions !== !!d.askQuestions)));
+
+  let updated = 0;
+  if (outdated.length && confirm(`${outdated.length} mitgelieferte Vorlage(n) gibt es in einer neuen Fassung (${outdated.map((t) => `„${t.name}“`).join(', ')}).\n\nAuf die neue Fassung aktualisieren? Eigene Änderungen an diesen Vorlagen gehen dabei verloren. Deine eigenen Vorlagen bleiben unberührt.`)) {
+    for (const d of outdated) {
+      const index = state.templates.findIndex((t) => t.name === d.name);
+      state.templates[index] = { ...clone(d), id: state.templates[index].id };
+      updated++;
+    }
+  }
   state.templates.push(...clone(missing));
   saveTemplates();
   renderTemplateList();
-  toast(missing.length ? `${missing.length} Vorlage(n) wiederhergestellt` : 'Alle mitgelieferten Vorlagen sind vorhanden');
+  // Neue mitgelieferte Platzhalter (z. B. {Aktenzeichen}) in die Übersicht aufnehmen
+  const newPlaceholders = DEFAULT_PLACEHOLDERS.filter((n) => !state.placeholderList.includes(n));
+  if (newPlaceholders.length) {
+    state.placeholderList.push(...newPlaceholders);
+    store.set('placeholderList', state.placeholderList);
+    renderChips(true);
+  }
+  const parts = [];
+  if (missing.length) parts.push(`${missing.length} ergänzt`);
+  if (updated) parts.push(`${updated} aktualisiert`);
+  toast(parts.length ? `Vorlagen: ${parts.join(', ')}` : 'Alle mitgelieferten Vorlagen sind aktuell');
 });
 
 $('#templates-save').addEventListener('click', () => {
