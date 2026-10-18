@@ -353,6 +353,9 @@ textarea.field-input::placeholder { color: var(--faint); }
   gap: 10px;
 }
 
+.output-foot { flex-wrap: wrap; justify-content: flex-end; }
+.output-foot .count { white-space: nowrap; margin-right: auto; }
+
 .count { font-size: 12.5px; color: var(--muted); }
 
 .compact-bar {
@@ -400,6 +403,8 @@ body.output-hidden .compact-bar { display: flex; }
 /* Platzhalter-Übersicht */
 .vars-panel {
   flex: none;
+  max-height: 42%;
+  overflow-y: auto;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--divider);
 }
@@ -437,6 +442,43 @@ body.output-hidden .compact-bar { display: flex; }
 .vars-strip .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
 .vars-strip .chips::-webkit-scrollbar { display: none; }
 body.output-hidden .vars-strip { display: block; }
+
+/* Werte der verwendeten Platzhalter */
+.vars-sub { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin: 4px 0 6px; }
+.vars-values { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.var-row { display: flex; align-items: center; gap: 10px; }
+.var-name { flex: none; min-width: 110px; font: 600 13px/1.3 var(--mono); color: var(--accent); }
+.var-row .text-input { flex: 1; min-width: 0; padding: 6px 10px; }
+.var-row.missing .text-input { border-color: var(--warn); }
+
+/* Eingabefeld mit hervorgehobenen Platzhaltern: Text liegt in einer Kopie hinter dem Feld */
+.field-box { position: relative; border-radius: 8px; background: var(--field); }
+.field-backdrop {
+  position: absolute;
+  inset: 0;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  color: var(--text);
+  pointer-events: none;
+  overflow: hidden;
+}
+.field-backdrop mark {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.field-box textarea.field-input {
+  position: relative;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+}
+.field-box textarea.field-input::selection { color: transparent; background: var(--accent-soft); }
 
 .vars-fields { display: flex; flex-direction: column; gap: 12px; }
 .settings-vars { resize: vertical; font-family: var(--mono); font-size: 13.5px; line-height: 1.5; }
@@ -703,7 +745,7 @@ kbd {
   #btn-review span { overflow: hidden; text-overflow: ellipsis; }
 
   /* 16px verhindert das automatische Hineinzoomen von iOS in Textfelder */
-  textarea.field-input, .text-input { font-size: 16px; }
+  textarea.field-input, .text-input, .field-backdrop { font-size: 16px; }
 
   dialog.sheet, dialog.sheet.small, dialog.sheet.large, dialog.sheet.tall {
     width: 100vw;
@@ -730,3 +772,5 @@ kbd {
     z-index: 1;
   }
 }
+
+.help a { color: var(--accent); }

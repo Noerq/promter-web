@@ -104,6 +104,11 @@
         <span class="spacer"></span>
         <button class="link-btn" type="button" id="vars-edit">Bearbeiten</button>
       </div>
+      <div class="vars-values-wrap" id="vars-values-wrap" hidden>
+        <div class="vars-sub">Werte – gelten überall im Prompt</div>
+        <div class="vars-values" id="vars-values"></div>
+        <div class="vars-sub">Einfügen</div>
+      </div>
       <div class="chips" data-chips data-editable></div>
       <form class="vars-add" id="vars-add" hidden>
         <input type="text" class="text-input" id="vars-new" placeholder="Neuer Platzhalter, z. B. Aktenzeichen" autocomplete="off" maxlength="31">
@@ -336,8 +341,8 @@
     <h3>Vorlagen übertragen und weitergeben</h3>
     <p>Im Vorlagen-Fenster unter <b>Exportieren …</b> wählst du einzelne oder alle Vorlagen aus und speicherst sie als Datei, z. B. in iCloud Drive. Mit <b>Importieren …</b> liest du sie auf einem anderen Gerät oder in der Mac-App wieder ein. Dabei wählst du aus, was übernommen wird. Vorlagen mit gleichem Namen werden ersetzt, alle anderen bleiben erhalten.</p>
 
-    <h3>Platzhalter in Vorlagen</h3>
-    <p>Schreibe in eine Vorlage Platzhalter in geschweiften Klammern, z. B. <code>{Empfänger}</code>, <code>{Thema}</code> oder <code>{Datum}</code>. Beim Laden fragt Promter die Werte ab und setzt sie überall ein. <code>{Datum}</code> ist mit dem heutigen Datum vorausgefüllt, und Promter merkt sich, was du zuletzt eingetragen hast. Offene Platzhalter zeigt Promter unter dem Prompt an, dort lassen sie sich jederzeit ausfüllen.</p>
+    <h3>Platzhalter</h3>
+    <p>Platzhalter in geschweiften Klammern, z. B. <code>{Empfänger}</code>, <code>{Thema}</code> oder <code>{Datum}</code>, bleiben in deinen Eingaben stehen und sind farbig markiert. Ihre <b>Werte</b> trägst du rechts in der Übersicht ein (oder beim Laden einer Vorlage). Erst im fertigen Prompt wird der Wert eingesetzt, und zwar überall, wo der Platzhalter vorkommt. Änderst du einen Wert, ändert er sich an allen Stellen. <code>{Datum}</code> ist mit dem heutigen Datum vorausgefüllt, und Promter merkt sich zuletzt verwendete Werte.</p>
 
     <p><b>Platzhalter-Übersicht:</b> Rechts über dem Ergebnis (auf dem iPhone unten in der Eingabe) stehen deine Platzhalter als kleine Schaltflächen. Antippen fügt den Platzhalter dort ein, wo der Cursor zuletzt stand. Am Mac und iPad kannst du ihn auch an die gewünschte Stelle ziehen. Über <b>Bearbeiten</b> fügst du eigene hinzu oder entfernst welche.</p>
 
@@ -352,6 +357,9 @@
 
     <h3>Deine Daten</h3>
     <p>Alles bleibt auf diesem Gerät in diesem Browser gespeichert und wird nirgendwohin gesendet. Auf dem iPhone und iPad gilt: Promter über <b>Teilen → Zum Home-Bildschirm</b> hinzufügen. Sonst kann Safari die Daten nach längerer Nichtbenutzung löschen. Zusätzlich sicherst du deine Vorlagen unter <b>Einstellungen → Exportieren</b>.</p>
+
+    <h3>Über Promter</h3>
+    <p>Promter wird von <a href="https://github.com/Noerq" target="_blank" rel="noopener">Noerq</a> entwickelt. Quellcode und Neuigkeiten: <a href="https://github.com/Noerq/promter-web" target="_blank" rel="noopener">github.com/Noerq/promter-web</a>. Es gibt Promter auch als App für den Mac.</p>
 
     <h3>Tastenkombinationen</h3>
     <p class="muted">Mit Tastatur, z. B. am iPad mit Magic Keyboard oder am Mac.</p>

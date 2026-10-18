@@ -56,8 +56,8 @@ Wahlweise auch mit **XML-Tags** (`<aufgabe>…</aufgabe>`). Sie markieren Anfang
 
 - **Vorschläge zum Abhaken:** fertige Bausteine wie „sachlich“, „Sie-Form“ oder „max. 1 Seite“, auch mehrere auf einmal
 - **Vorlagen:** typische Fälle wie *E-Mail beantworten*, *Bericht erstellen*, *Protokoll aus Notizen* oder *Text überarbeiten*, plus eigene Vorlagen. Beim Laden fragt Promter nach, bevor Eingaben überschrieben werden, und kann auch nur die leeren Felder füllen.
-- **Platzhalter:** `{Empfänger}`, `{Thema}` oder `{Datum}` in Vorlagen. Beim Laden fragt Promter die Werte ab und setzt sie überall ein. `{Datum}` ist vorausgefüllt, zuletzt verwendete Werte werden vorgeschlagen.
-- **Platzhalter-Übersicht:** alle Platzhalter als Schaltflächen über dem Ergebnis (auf dem iPhone unten in der Eingabe). Antippen fügt an der Cursor-Position ein, am Mac und iPad lassen sie sich auch an die gewünschte Stelle ziehen. Eigene Platzhalter lassen sich hinzufügen.
+- **Platzhalter:** `{Empfänger}`, `{Thema}` oder `{Datum}` bleiben im Text stehen und sind farbig markiert. Ihre Werte trägst du einmal ein, und sie gelten überall im fertigen Prompt. Änderst du einen Wert, ändert er sich an allen Stellen. `{Datum}` ist vorausgefüllt, zuletzt verwendete Werte werden vorgeschlagen.
+- **Platzhalter-Übersicht:** über dem Ergebnis die Werte aller verwendeten Platzhalter und alle Platzhalter als Schaltflächen (auf dem iPhone unten in der Eingabe). Antippen fügt an der Cursor-Position ein, am Mac und iPad lassen sie sich auch an die gewünschte Stelle ziehen. Eigene Platzhalter lassen sich hinzufügen.
 - **Prüfen lassen:** kopiert den Prompt mit der Bitte um Prüfung. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung, ohne API und ohne Zusatzkosten.
 - **Hinweise:** wenn die Aufgabe fehlt, sehr knapp ist oder noch Platzhalter enthält
 - **Kopieren & Teilen:** Kopieren mit einem Klick oder ⌘↩. Auf iPhone und iPad schickt „Teilen“ den Prompt direkt an die Claude- oder ChatGPT-App.
@@ -92,3 +92,7 @@ python3 -m http.server 8765
 ```
 
 Danach `http://localhost:8765` im Browser öffnen.
+
+## Über
+
+Promter wird von [Noerq](https://github.com/Noerq) entwickelt. Es gibt Promter auch als App für den Mac.

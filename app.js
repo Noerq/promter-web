@@ -37,12 +37,18 @@ const state = {
   format: store.get('format', 'headings'),
   showOutput: store.get('showOutput', true),
   placeholderList: store.get('placeholderList', [...DEFAULT_PLACEHOLDERS]),
+  // Werte der Platzhalter – sie werden erst im fertigen Prompt eingesetzt
+  placeholderValues: store.get('placeholderValues', {}),
 };
 
 const saveCategories = () => store.set('categories', state.categories);
 const saveTemplates = () => store.set('templates', state.templates);
 const saveHistory = () => store.set('history', state.history);
-const saveDraft = () => { store.set('values', state.values); store.set('ask', state.ask); };
+const saveDraft = () => {
+  store.set('values', state.values);
+  store.set('ask', state.ask);
+  store.set('placeholderValues', state.placeholderValues);
+};
 
 /* ================= Prompt bauen (wie PromptBuilder.swift) ================= */
 
@@ -61,7 +67,7 @@ function xmlTag(title) {
 
 function buildPrompt() {
   const sections = state.categories
-    .map((c) => [c.title, clean(state.values[c.id])])
+    .map((c) => [c.title, clean(substitutePlaceholders(state.values[c.id]))])
     .filter(([, text]) => text);
   if (state.ask && sections.length) sections.push(['Rückfragen', QUESTIONS_TEXT]);
 
@@ -114,18 +120,38 @@ function suggestedValue(name) {
   return store.get('placeholderMemory', {})[name] || '';
 }
 
-function fillPlaceholders(filled) {
-  for (const [key, value] of Object.entries(state.values)) {
-    state.values[key] = (value || '').replace(PLACEHOLDER_RE, (all, name) => clean(filled[name.trim()]) || all);
-  }
+/** Setzt die Werte der Platzhalter ein; Platzhalter ohne Wert bleiben als {Name} stehen. */
+function substitutePlaceholders(text) {
+  return (text || '').replace(PLACEHOLDER_RE, (all, name) => clean(state.placeholderValues[name.trim()]) || all);
+}
+
+/** Verwendete Platzhalter, die noch keinen Wert haben */
+function missingPlaceholders() {
+  return placeholdersIn(state.values).filter((name) => !clean(state.placeholderValues[name]));
+}
+
+function rememberValue(name, value) {
+  if (!clean(value) || /^datum$/i.test(name)) return;
   const memory = store.get('placeholderMemory', {});
-  for (const [name, value] of Object.entries(filled)) {
-    if (clean(value) && !/^datum$/i.test(name)) memory[name] = value.trim();
-  }
+  memory[name] = value.trim();
   store.set('placeholderMemory', memory);
+}
+
+function setPlaceholderValue(name, value) {
+  state.placeholderValues[name] = value;
+  rememberValue(name, value);
   saveDraft();
-  renderFields();
   updateOutput();
+}
+
+function fillPlaceholders(filled) {
+  for (const [name, value] of Object.entries(filled)) {
+    state.placeholderValues[name] = value.trim();
+    rememberValue(name, value);
+  }
+  saveDraft();
+  updateOutput();
+  renderChips(true);
 }
 
 function openPlaceholderDialog() {
@@ -133,7 +159,7 @@ function openPlaceholderDialog() {
   if (!names.length) return;
   const inputs = names.map((name) => {
     const input = el('input', { class: 'text-input', type: 'text', autocomplete: 'off', placeholder: name });
-    input.value = suggestedValue(name);
+    input.value = clean(state.placeholderValues[name]) ? state.placeholderValues[name] : suggestedValue(name);
     return { name, input };
   });
   $('#vars-fields').replaceChildren(...inputs.map(({ name, input }) => el('label', {}, name, input)));
@@ -176,12 +202,43 @@ function insertPlaceholder(name) {
   field.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-function renderChips() {
+function renderPlaceholderValues(force) {
+  const container = $('#vars-values');
+  const used = placeholdersIn(state.values);
+  const signature = JSON.stringify(used);
+  if (!force && container.dataset.signature === signature) {
+    // Nur die Markierung „ohne Wert“ aktualisieren – Eingabefelder behalten so den Fokus
+    for (const row of $$('.var-row', container)) {
+      row.classList.toggle('missing', !clean(state.placeholderValues[row.dataset.name]));
+    }
+    return;
+  }
+  container.dataset.signature = signature;
+  $('#vars-values-wrap').hidden = used.length === 0;
+  container.replaceChildren(...used.map((name) => {
+    const input = el('input', { class: 'text-input', type: 'text', autocomplete: 'off', placeholder: 'Wert eintragen …' });
+    input.value = state.placeholderValues[name] || '';
+    input.addEventListener('input', () => {
+      setPlaceholderValue(name, input.value);
+      input.closest('.var-row').classList.toggle('missing', !clean(input.value));
+    });
+    const row = el('label', { class: 'var-row' + (clean(input.value) ? '' : ' missing') },
+      el('span', { class: 'var-name' }, `{${name}}`), input);
+    row.dataset.name = name;
+    return row;
+  }));
+}
+
+function renderChips(force = false) {
+  renderPlaceholderValues(force);
   const used = new Set(placeholdersIn(state.values));
   const names = [...state.placeholderList, ...[...used].filter((n) => !state.placeholderList.includes(n))];
 
   for (const container of $$('[data-chips]')) {
     const editable = container.hasAttribute('data-editable') && editingPlaceholders;
+    const signature = JSON.stringify([names, [...used], editable]);
+    if (!force && container.dataset.signature === signature) continue;
+    container.dataset.signature = signature;
     container.replaceChildren(...names.map((name) => {
       const inList = state.placeholderList.includes(name);
       const chip = el('span', {
@@ -210,7 +267,7 @@ function renderChips() {
             event.stopPropagation();
             state.placeholderList = state.placeholderList.filter((n) => n !== name);
             store.set('placeholderList', state.placeholderList);
-            renderChips();
+            renderChips(true);
           },
         }, icon('close')));
       }
@@ -320,8 +377,11 @@ function fieldView(category) {
     spellcheck: 'true',
   });
   textarea.value = state.values[category.id] || '';
+  const backdrop = el('div', { class: 'field-backdrop', 'aria-hidden': 'true' });
+  paintBackdrop(backdrop, textarea.value);
   textarea.addEventListener('input', () => {
     state.values[category.id] = textarea.value;
+    paintBackdrop(backdrop, textarea.value);
     grow(textarea);
     changed();
   });
@@ -335,7 +395,14 @@ function fieldView(category) {
       onclick: () => openPresets(category),
     }, icon('presets'), el('span', { class: 'label' }, 'Vorschläge')));
   }
-  return el('div', { class: 'field' }, head, textarea);
+  return el('div', { class: 'field' }, head, el('div', { class: 'field-box' }, backdrop, textarea));
+}
+
+/** Hinter dem (transparenten) Text liegt eine Kopie, in der Platzhalter farbig markiert sind. */
+function paintBackdrop(backdrop, text) {
+  const escape = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  // Abschließender Zeilenumbruch braucht eine sichtbare Zeile, sonst ist die Kopie eine Zeile kürzer
+  backdrop.innerHTML = escape(text).replace(PLACEHOLDER_RE, '<mark>$&</mark>') + (text.endsWith('\n') ? ' ' : '');
 }
 
 function renderFields() {
@@ -354,6 +421,7 @@ function syncField(id) {
   const textarea = document.querySelector(`textarea[data-id="${CSS.escape(id)}"]`);
   if (textarea) {
     textarea.value = state.values[id] || '';
+    paintBackdrop(textarea.previousElementSibling, textarea.value);
     grow(textarea);
   }
 }
@@ -376,13 +444,13 @@ function updateOutput() {
   pre.classList.toggle('empty', !prompt);
 
   const list = warnings();
-  const openVars = placeholdersIn(state.values);
+  const openVars = missingPlaceholders();
   const items = list.map((w) => el('li', {}, icon('warn'), el('span', {}, w)));
   if (openVars.length) {
     items.unshift(el('li', { class: 'vars' }, icon('braces'),
-      el('span', {}, `Platzhalter offen: ${openVars.map((n) => `{${n}}`).join(', ')} – `,
+      el('span', {}, `Platzhalter ohne Wert: ${openVars.map((n) => `{${n}}`).join(', ')} – `,
         el('button', { class: 'link-btn', type: 'button', onclick: openPlaceholderDialog }, 'jetzt ausfüllen'))));
-    list.unshift(`Platzhalter offen: ${openVars.map((n) => `{${n}}`).join(', ')}`);
+    list.unshift(`Platzhalter ohne Wert: ${openVars.map((n) => `{${n}}`).join(', ')}`);
   }
   $('#warnings').replaceChildren(...items);
 
@@ -440,6 +508,7 @@ function addHistory(prompt) {
     id: uuid(),
     date: new Date().toISOString(),
     values: clone(state.values),
+    placeholderValues: clone(state.placeholderValues),
     askQuestions: state.ask,
     prompt,
   });
@@ -523,9 +592,10 @@ function openPresets(category) {
 
 /* ---------- Vorlagen ---------- */
 
-function applyValues(values, askQuestions) {
+function applyValues(values, askQuestions, placeholderValues) {
   state.values = clone(values || {});
   state.ask = !!askQuestions;
+  if (placeholderValues) state.placeholderValues = { ...state.placeholderValues, ...placeholderValues };
   saveDraft();
   renderFields();
   updateOutput();
@@ -546,12 +616,15 @@ function sameValues(a, b) {
  * Lädt Werte aus einer Vorlage oder dem Verlauf. Gingen dabei Eingaben verloren,
  * wird vorher gefragt: Ersetzen, nur leere Felder füllen oder abbrechen.
  */
-function requestLoad({ title, values, askQuestions, done: finish }) {
-  // Nach dem Laden gleich die Platzhalter der Vorlage abfragen
-  const done = (mode) => { finish(mode); openPlaceholderDialog(); };
+function requestLoad({ title, values, askQuestions, placeholderValues, askAlways = true, done: finish }) {
+  // Nach dem Laden die Platzhalter abfragen (bei Vorlagen immer, beim Verlauf nur fehlende)
+  const done = (mode) => {
+    finish(mode);
+    if (askAlways || missingPlaceholders().length) openPlaceholderDialog();
+  };
   const hasInput = Object.keys(filledValues(state.values)).length > 0;
   if (!hasInput || sameValues(state.values, values)) {
-    applyValues(values, askQuestions);
+    applyValues(values, askQuestions, placeholderValues);
     done('replace');
     return;
   }
@@ -560,7 +633,7 @@ function requestLoad({ title, values, askQuestions, done: finish }) {
   $('#load-title').textContent = title;
   $('#load-replace').onclick = () => {
     dialog.close();
-    applyValues(values, askQuestions);
+    applyValues(values, askQuestions, placeholderValues);
     done('replace');
   };
   $('#load-fill').onclick = () => {
@@ -569,7 +642,7 @@ function requestLoad({ title, values, askQuestions, done: finish }) {
     for (const [key, value] of Object.entries(values || {})) {
       if (!clean(merged[key])) merged[key] = value;
     }
-    applyValues(merged, state.ask || askQuestions);
+    applyValues(merged, state.ask || askQuestions, placeholderValues);
     done('fill');
   };
   openDialog('dlg-load');
@@ -674,6 +747,8 @@ function renderHistory() {
         title: 'Eintrag aus dem Verlauf laden?',
         values: entry.values,
         askQuestions: entry.askQuestions,
+        placeholderValues: entry.placeholderValues,
+        askAlways: false,
         done: (mode) => {
           $('#dlg-history').close();
           toast(mode === 'fill' ? 'Leere Felder aus dem Verlauf ergänzt' : 'Eingaben aus dem Verlauf geladen');
@@ -997,6 +1072,7 @@ $('#btn-help').addEventListener('click', () => {
 
 $('#btn-clear').addEventListener('click', () => {
   if (!confirm('Alle Eingaben leeren?')) return;
+  state.placeholderValues = {};
   applyValues({}, false);
 });
 
