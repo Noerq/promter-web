@@ -134,9 +134,62 @@
     <ul class="list" id="template-list"></ul>
   </div>
   <div class="sheet-foot wrap">
-    <button class="secondary" id="templates-restore">Mitgelieferte wiederherstellen</button>
+    <button class="secondary" data-export-open>Exportieren …</button>
+    <button class="secondary" data-import-open>Importieren …</button>
     <span class="spacer"></span>
     <button class="primary" id="templates-save">Aktuelle Eingaben speichern …</button>
+  </div>
+</dialog>
+
+<!-- Export mit Auswahl -->
+<dialog id="dlg-export" class="sheet tall">
+  <div class="sheet-head">
+    <h2>Vorlagen exportieren</h2>
+    <button class="icon-btn" data-close aria-label="Schließen"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <p class="muted">Wähle aus, welche Vorlagen in die Datei sollen, z. B. zum Sichern, für ein anderes Gerät oder zum Weitergeben.</p>
+    <div class="select-tools">
+      <button class="link-btn" type="button" data-select="all">Alle</button>
+      <button class="link-btn" type="button" data-select="none">Keine</button>
+    </div>
+    <div id="export-list"></div>
+    <label class="check option-row">
+      <input type="checkbox" id="export-cats">
+      <span>Kategorien mitexportieren<span class="sub">deine Überschriften, Hinweise und Vorschläge</span></span>
+    </label>
+  </div>
+  <div class="sheet-foot">
+    <span class="count" id="export-summary"></span>
+    <span class="spacer"></span>
+    <button class="secondary" type="button" data-close>Abbrechen</button>
+    <button class="primary" type="button" id="export-confirm">Exportieren</button>
+  </div>
+</dialog>
+
+<!-- Import mit Auswahl -->
+<dialog id="dlg-import" class="sheet tall">
+  <div class="sheet-head">
+    <h2>Vorlagen importieren</h2>
+    <button class="icon-btn" data-close aria-label="Schließen"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <p class="muted" id="import-intro"></p>
+    <div class="select-tools">
+      <button class="link-btn" type="button" data-select="all">Alle</button>
+      <button class="link-btn" type="button" data-select="none">Keine</button>
+    </div>
+    <div id="import-list"></div>
+    <label class="check option-row" id="import-cats-row">
+      <input type="checkbox" id="import-cats">
+      <span id="import-cats-label"></span>
+    </label>
+  </div>
+  <div class="sheet-foot">
+    <span class="count" id="import-summary"></span>
+    <span class="spacer"></span>
+    <button class="secondary" type="button" data-close>Abbrechen</button>
+    <button class="primary" type="button" id="import-confirm">Importieren</button>
   </div>
 </dialog>
 
@@ -203,11 +256,16 @@
       <button class="secondary" id="cat-reset">Standard wiederherstellen</button>
     </div>
 
-    <h3>Daten sichern</h3>
-    <p class="muted">Vorlagen und Kategorien als Datei sichern oder auf einem anderen Gerät einlesen, z. B. über iCloud Drive.</p>
+    <h3>Vorlagen</h3>
     <div class="row-buttons">
-      <button class="secondary" id="data-export">Exportieren</button>
-      <button class="secondary" id="data-import">Importieren …</button>
+      <button class="secondary" id="templates-restore">Mitgelieferte Vorlagen wiederherstellen</button>
+    </div>
+
+    <h3>Daten sichern</h3>
+    <p class="muted">Vorlagen und Kategorien als Datei sichern oder auf einem anderen Gerät einlesen, z. B. über iCloud Drive. Das Format ist dasselbe wie in der Mac-App.</p>
+    <div class="row-buttons">
+      <button class="secondary" data-export-open>Exportieren …</button>
+      <button class="secondary" data-import-open>Importieren …</button>
       <input type="file" id="import-file" accept="application/json,.json" hidden>
     </div>
   </div>
@@ -233,6 +291,9 @@
       <li><b>Hinweise beachten:</b> Sie erscheinen, wenn z. B. die Aufgabe fehlt oder noch ein Platzhalter „…“ drinsteht.</li>
       <li><b>Kopieren oder Teilen:</b> „Teilen“ schickt den Prompt direkt an die Claude- oder ChatGPT-App.</li>
     </ol>
+
+    <h3>Vorlagen übertragen und weitergeben</h3>
+    <p>Im Vorlagen-Fenster unter <b>Exportieren …</b> wählst du einzelne oder alle Vorlagen aus und speicherst sie als Datei, z. B. in iCloud Drive. Mit <b>Importieren …</b> liest du sie auf einem anderen Gerät oder in der Mac-App wieder ein. Dabei wählst du aus, was übernommen wird. Vorlagen mit gleichem Namen werden ersetzt, alle anderen bleiben erhalten.</p>
 
     <h3>Die Kategorien</h3>
     <dl class="cat-help" id="help-categories"></dl>

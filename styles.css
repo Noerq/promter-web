@@ -390,6 +390,12 @@ body.output-hidden .compact-bar { display: flex; }
 .primary.danger-fill { background: var(--danger); }
 .load-message { margin: 0 0 10px; }
 
+.select-tools { display: flex; gap: 14px; margin: 0 0 4px; }
+.link-btn { border: 0; background: none; color: var(--accent); padding: 4px 0; cursor: pointer; font-size: 14px; }
+.check-row .sub, .option-row .sub { display: block; font-size: 12.5px; color: var(--muted); }
+.check-row .sub.replace { color: var(--warn); }
+.option-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--divider); }
+
 /* ---------- Dialoge ---------- */
 
 dialog.sheet {
@@ -658,4 +664,15 @@ kbd {
 
   .load-actions { flex-direction: column-reverse; align-items: stretch; }
   .load-actions .spacer { display: none; }
+}
+
+/* Home-Bildschirm-App (iPhone/iPad): iOS legt einen Unschärfe-Effekt unter Statusleiste
+   und Dynamic Island. Die Kopfleiste rückt deshalb etwas tiefer, mit festem Hintergrund. */
+@media (display-mode: standalone) {
+  .toolbar {
+    padding-top: calc(env(safe-area-inset-top) + 22px);
+    background: var(--bg);
+    position: relative;
+    z-index: 1;
+  }
 }

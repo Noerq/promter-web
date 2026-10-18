@@ -634,35 +634,7 @@ $('#cat-reset').addEventListener('click', () => {
   renderCategoryEditor();
 });
 
-/* ---------- Einstellungen: Export / Import ---------- */
-
-$('#data-export').addEventListener('click', async () => {
-  const data = {
-    app: 'Promter',
-    format: 1,
-    exportedAt: new Date().toISOString(),
-    categories: state.categories,
-    templates: state.templates,
-  };
-  const date = new Date().toISOString().slice(0, 10);
-  const name = `Promter-Vorlagen-${date}.json`;
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const file = new File([blob], name, { type: 'application/json' });
-
-  // iPhone/iPad: Teilen-Menü („In Dateien sichern“), sonst normaler Download
-  if (isIOS && navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file] }); return; } catch { return; }
-  }
-  const url = URL.createObjectURL(blob);
-  const link = el('a', { href: url, download: name });
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('Export gespeichert');
-});
-
-$('#data-import').addEventListener('click', () => $('#import-file').click());
+/* ---------- Export / Import (gleiches Format wie die Mac-App) ---------- */
 
 function validCategory(c) {
   return c && typeof c.id === 'string' && typeof c.title === 'string';
@@ -670,6 +642,88 @@ function validCategory(c) {
 
 function validTemplate(t) {
   return t && typeof t.name === 'string' && t.values && typeof t.values === 'object';
+}
+
+/** Liste mit Häkchen; liefert eine Funktion, die die angehakten Einträge zurückgibt. */
+function renderChecklist(container, items, label, sub, onChange) {
+  const boxes = items.map((item) => {
+    const box = el('input', { type: 'checkbox' });
+    box.checked = true;
+    box.addEventListener('change', onChange);
+    const subText = sub(item);
+    container.append(el('label', { class: 'check-row' }, box,
+      el('span', {}, label(item), subText ? el('span', { class: 'sub ' + (subText.cls || '') }, subText.text) : null)));
+    return { item, box };
+  });
+  const dialog = container.closest('dialog');
+  for (const button of $$('[data-select]', dialog)) {
+    button.onclick = () => {
+      boxes.forEach(({ box }) => { box.checked = button.dataset.select === 'all'; });
+      onChange();
+    };
+  }
+  return () => boxes.filter(({ box }) => box.checked).map(({ item }) => item);
+}
+
+let exportSelection = () => [];
+
+function updateExportSummary() {
+  const n = exportSelection().length;
+  const cats = $('#export-cats').checked;
+  $('#export-summary').textContent = `${n} von ${state.templates.length} Vorlagen${cats ? ' + Kategorien' : ''}`;
+  $('#export-confirm').disabled = n === 0 && !cats;
+}
+
+function openExport() {
+  const list = $('#export-list');
+  list.replaceChildren();
+  exportSelection = renderChecklist(list, state.templates, (t) => t.name, () => null, updateExportSummary);
+  $('#export-cats').checked = false;
+  $('#export-cats').onchange = updateExportSummary;
+  updateExportSummary();
+  openDialog('dlg-export');
+}
+
+async function saveFile(data, name) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+
+  // iPhone/iPad: Teilen-Menü („In Dateien sichern“), sonst normaler Download
+  if (isIOS && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return true; } catch { return false; }
+  }
+  const url = URL.createObjectURL(blob);
+  const link = el('a', { href: url, download: name });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}
+
+$('#export-confirm').addEventListener('click', async () => {
+  const templates = exportSelection();
+  const data = { app: 'Promter', format: 1, exportedAt: new Date().toISOString(), templates };
+  if ($('#export-cats').checked) data.categories = state.categories;
+
+  const date = new Date().toISOString().slice(0, 10);
+  const name = templates.length === 1 && !data.categories
+    ? `Promter-Vorlage-${templates[0].name.replace(/[^\p{L}\p{N}]+/gu, '-')}.json`
+    : `Promter-Vorlagen-${date}.json`;
+  if (await saveFile(data, name)) {
+    $('#dlg-export').close();
+    toast(`${templates.length} Vorlage(n) exportiert`);
+  }
+});
+
+let importData = { templates: [], categories: [] };
+let importSelection = () => [];
+
+function updateImportSummary() {
+  const n = importSelection().length;
+  const cats = $('#import-cats').checked;
+  $('#import-summary').textContent = `${n} von ${importData.templates.length} ausgewählt${cats ? ' + Kategorien' : ''}`;
+  $('#import-confirm').disabled = n === 0 && !cats;
 }
 
 $('#import-file').addEventListener('change', async (event) => {
@@ -685,31 +739,57 @@ $('#import-file').addEventListener('change', async (event) => {
     return;
   }
 
-  // Akzeptiert den Export-Bundle sowie einzelne Dateien der Mac-App (templates.json / categories.json)
-  const templates = Array.isArray(data) ? data.filter(validTemplate) : (data.templates || []).filter(validTemplate);
-  const categories = Array.isArray(data) ? data.filter(validCategory).filter((c) => !validTemplate(c)) : (data.categories || []).filter(validCategory);
-
+  // Akzeptiert Export-Dateien sowie die Dateien der Mac-App (templates.json / categories.json)
+  const templates = (Array.isArray(data) ? data : (data.templates || [])).filter(validTemplate);
+  const categories = (Array.isArray(data) ? data : (data.categories || [])).filter(validCategory).filter((c) => !validTemplate(c));
   if (!templates.length && !categories.length) {
     alert('In der Datei wurden keine Vorlagen oder Kategorien gefunden.');
     return;
   }
 
-  for (const template of templates) {
+  importData = { templates, categories };
+  $('#import-intro').textContent = templates.length
+    ? `„${file.name}“ enthält ${templates.length} Vorlage(n). Wähle aus, welche übernommen werden sollen.`
+    : `„${file.name}“ enthält keine Vorlagen, nur Kategorien.`;
+
+  const list = $('#import-list');
+  list.replaceChildren();
+  importSelection = renderChecklist(list, templates, (t) => t.name,
+    (t) => (state.templates.some((x) => x.name === t.name)
+      ? { text: 'ersetzt deine bestehende Vorlage mit diesem Namen', cls: 'replace' }
+      : { text: 'neu' }),
+    updateImportSummary);
+  $$('#dlg-import .select-tools').forEach((tools) => { tools.hidden = templates.length < 2; });
+
+  $('#import-cats-row').hidden = categories.length === 0;
+  $('#import-cats').checked = false;
+  $('#import-cats').onchange = updateImportSummary;
+  $('#import-cats-label').replaceChildren(`${categories.length} Kategorien übernehmen`,
+    el('span', { class: 'sub' }, 'ersetzt deine aktuellen Kategorien'));
+  updateImportSummary();
+  openDialog('dlg-import');
+});
+
+$('#import-confirm').addEventListener('click', () => {
+  const selected = importSelection();
+  for (const template of selected) {
+    const index = state.templates.findIndex((t) => t.name === template.name);
+    // Eindeutige ID behalten, aber keine ID doppelt vergeben
+    const idTaken = state.templates.some((t, i) => t.id === template.id && i !== index);
     const entry = {
-      id: typeof template.id === 'string' ? template.id : uuid(),
+      id: typeof template.id === 'string' && !idTaken ? template.id : uuid(),
       name: template.name,
       values: template.values,
       askQuestions: !!template.askQuestions,
     };
-    const index = state.templates.findIndex((t) => t.name === entry.name);
     if (index === -1) state.templates.push(entry);
     else state.templates[index] = entry;
   }
   saveTemplates();
 
-  let categoriesTaken = false;
-  if (categories.length && confirm(`${categories.length} Kategorien gefunden. Sollen sie deine aktuellen Kategorien ersetzen?`)) {
-    state.categories = categories.map((c) => ({
+  const takeCategories = $('#import-cats').checked;
+  if (takeCategories) {
+    state.categories = importData.categories.map((c) => ({
       id: c.id,
       title: c.title,
       hint: c.hint || '',
@@ -717,12 +797,18 @@ $('#import-file').addEventListener('change', async (event) => {
       presets: Array.isArray(c.presets) ? c.presets.filter((p) => typeof p === 'string') : [],
     }));
     saveCategories();
-    renderCategoryEditor();
-    categoriesTaken = true;
+    renderFields();
+    updateOutput();
   }
 
-  toast(`${templates.length} Vorlage(n) importiert${categoriesTaken ? ', Kategorien übernommen' : ''}`);
+  $('#dlg-import').close();
+  if ($('#dlg-templates').open) renderTemplateList();
+  if ($('#dlg-settings').open) renderCategoryEditor();
+  toast(`${selected.length} Vorlage(n) importiert${takeCategories ? ', Kategorien übernommen' : ''}`);
 });
+
+$$('[data-export-open]').forEach((b) => b.addEventListener('click', openExport));
+$$('[data-import-open]').forEach((b) => b.addEventListener('click', () => $('#import-file').click()));
 
 /* ---------- Hilfe ---------- */
 
