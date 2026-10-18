@@ -36,6 +36,7 @@ const state = {
   ask: store.get('ask', false),
   format: store.get('format', 'headings'),
   showOutput: store.get('showOutput', true),
+  placeholderList: store.get('placeholderList', [...DEFAULT_PLACEHOLDERS]),
 };
 
 const saveCategories = () => store.set('categories', state.categories);
@@ -144,6 +145,78 @@ function openPlaceholderDialog() {
   openDialog('dlg-vars');
   inputs[0].input.focus();
   inputs[0].input.select();
+}
+
+/* ---------- Platzhalter-Übersicht: Einfügen per Klick oder Ziehen ---------- */
+
+const PLACEHOLDER_NAME_RE = /^\p{L}[\p{L}\p{N} _-]{0,30}$/u;
+let lastField = null;
+let editingPlaceholders = false;
+
+// Merkt sich das zuletzt benutzte Feld – dort wird beim Antippen eingefügt
+for (const type of ['focusin', 'pointerup', 'keyup', 'input', 'select']) {
+  document.addEventListener(type, (event) => {
+    if (event.target.matches?.('textarea.field-input')) lastField = event.target;
+  });
+}
+
+function insertPlaceholder(name) {
+  const active = document.activeElement?.matches?.('textarea.field-input') ? document.activeElement : null;
+  const candidate = active || lastField;
+  const field = candidate && document.contains(candidate) && candidate.offsetParent ? candidate : null;
+  if (!field) {
+    toast('Erst in ein Feld tippen, dann den Platzhalter wählen');
+    return;
+  }
+  const token = `{${name}}`;
+  const start = field.selectionStart ?? field.value.length;
+  const end = field.selectionEnd ?? start;
+  field.focus();
+  field.setRangeText(token, start, end, 'end');
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function renderChips() {
+  const used = new Set(placeholdersIn(state.values));
+  const names = [...state.placeholderList, ...[...used].filter((n) => !state.placeholderList.includes(n))];
+
+  for (const container of $$('[data-chips]')) {
+    const editable = container.hasAttribute('data-editable') && editingPlaceholders;
+    container.replaceChildren(...names.map((name) => {
+      const inList = state.placeholderList.includes(name);
+      const chip = el('span', {
+        class: 'chip' + (used.has(name) ? ' used' : '') + (inList ? '' : ' extra'),
+        role: 'button',
+        tabindex: '0',
+        draggable: 'true',
+        title: inList ? `{${name}} einfügen` : `{${name}} kommt im Text vor`,
+      }, `{${name}}`);
+      // Fokus im Textfeld behalten (sonst schließt sich auf dem iPhone die Tastatur)
+      chip.addEventListener('pointerdown', (event) => event.preventDefault());
+      chip.addEventListener('click', () => insertPlaceholder(name));
+      chip.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); insertPlaceholder(name); }
+      });
+      chip.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('text/plain', `{${name}}`);
+        event.dataTransfer.effectAllowed = 'copy';
+      });
+      if (editable && inList) {
+        chip.append(el('button', {
+          class: 'x',
+          type: 'button',
+          title: `{${name}} aus der Übersicht entfernen`,
+          onclick: (event) => {
+            event.stopPropagation();
+            state.placeholderList = state.placeholderList.filter((n) => n !== name);
+            store.set('placeholderList', state.placeholderList);
+            renderChips();
+          },
+        }, icon('close')));
+      }
+      return chip;
+    }));
+  }
 }
 
 /* ================= Prüfen lassen ================= */
@@ -335,6 +408,7 @@ function updateOutput() {
   badge.title = 'Diese Angaben stehen im Prompt, obwohl der Bereich eingeklappt ist.';
 
   $$('#format-switch button').forEach((b) => b.classList.toggle('active', b.dataset.format === state.format));
+  renderChips();
 }
 
 function changed() {
@@ -694,7 +768,16 @@ function renderCategoryEditor(openId) {
   }));
 }
 
+$('#settings-vars').addEventListener('input', () => {
+  // Nur gültige Namen übernehmen, geschweifte Klammern und Doppelte entfernen
+  const names = $('#settings-vars').value.split('\n').map((n) => n.replace(/[{}]/g, '').trim()).filter((n) => PLACEHOLDER_NAME_RE.test(n));
+  state.placeholderList = [...new Set(names)];
+  store.set('placeholderList', state.placeholderList);
+  renderChips();
+});
+
 $('#btn-settings').addEventListener('click', () => {
+  $('#settings-vars').value = state.placeholderList.join('\n');
   renderCategoryEditor();
   openDialog('dlg-settings');
 });
@@ -992,6 +1075,31 @@ $('#install-hint-close').addEventListener('click', () => {
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline-Modus weiter */ });
 }
+
+/* ---------- Platzhalter-Übersicht: Bearbeiten ---------- */
+
+$('#vars-edit').addEventListener('click', () => {
+  editingPlaceholders = !editingPlaceholders;
+  $('#vars-edit').textContent = editingPlaceholders ? 'Fertig' : 'Bearbeiten';
+  $('#vars-add').hidden = !editingPlaceholders;
+  renderChips();
+  if (editingPlaceholders) $('#vars-new').focus();
+});
+
+$('#vars-add').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const name = $('#vars-new').value.replace(/[{}]/g, '').trim();
+  if (!PLACEHOLDER_NAME_RE.test(name)) {
+    toast('Bitte mit einem Buchstaben beginnen, höchstens 31 Zeichen');
+    return;
+  }
+  if (!state.placeholderList.includes(name)) {
+    state.placeholderList.push(name);
+    store.set('placeholderList', state.placeholderList);
+  }
+  $('#vars-new').value = '';
+  renderChips();
+});
 
 /* ---------- Start ---------- */
 

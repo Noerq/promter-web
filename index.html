@@ -83,6 +83,10 @@
       </label>
     </div>
 
+    <div class="vars-strip" id="vars-strip" aria-label="Platzhalter">
+      <div class="chips" data-chips></div>
+    </div>
+
     <div class="compact-bar" id="compact-bar">
       <span class="warn-count" id="compact-warnings" hidden></span>
       <span class="count" id="compact-count"></span>
@@ -93,6 +97,20 @@
   </section>
 
   <section class="pane output-pane" aria-label="Ergebnis">
+    <div class="vars-panel" id="vars-panel">
+      <div class="vars-head">
+        <h2>Platzhalter</h2>
+        <span class="vars-hint">Klicken oder in ein Feld ziehen</span>
+        <span class="spacer"></span>
+        <button class="link-btn" type="button" id="vars-edit">Bearbeiten</button>
+      </div>
+      <div class="chips" data-chips data-editable></div>
+      <form class="vars-add" id="vars-add" hidden>
+        <input type="text" class="text-input" id="vars-new" placeholder="Neuer Platzhalter, z. B. Aktenzeichen" autocomplete="off" maxlength="31">
+        <button class="secondary" type="submit">Hinzufügen</button>
+      </form>
+    </div>
+
     <div class="output-head">
       <h2>Fertiger Prompt</h2>
       <div class="segmented" id="format-switch" role="radiogroup" aria-label="Format">
@@ -275,6 +293,10 @@
       <button class="secondary" id="cat-reset">Standard wiederherstellen</button>
     </div>
 
+    <h3>Platzhalter</h3>
+    <p class="muted">Die Platzhalter der Übersicht, einer pro Zeile. Die Reihenfolge hier ist auch die Reihenfolge der Schaltflächen.</p>
+    <textarea class="text-input settings-vars" id="settings-vars" rows="6" spellcheck="false"></textarea>
+
     <h3>Vorlagen</h3>
     <div class="row-buttons">
       <button class="secondary" id="templates-restore">Mitgelieferte Vorlagen wiederherstellen</button>
@@ -316,6 +338,8 @@
 
     <h3>Platzhalter in Vorlagen</h3>
     <p>Schreibe in eine Vorlage Platzhalter in geschweiften Klammern, z. B. <code>{Empfänger}</code>, <code>{Thema}</code> oder <code>{Datum}</code>. Beim Laden fragt Promter die Werte ab und setzt sie überall ein. <code>{Datum}</code> ist mit dem heutigen Datum vorausgefüllt, und Promter merkt sich, was du zuletzt eingetragen hast. Offene Platzhalter zeigt Promter unter dem Prompt an, dort lassen sie sich jederzeit ausfüllen.</p>
+
+    <p><b>Platzhalter-Übersicht:</b> Rechts über dem Ergebnis (auf dem iPhone unten in der Eingabe) stehen deine Platzhalter als kleine Schaltflächen. Antippen fügt den Platzhalter dort ein, wo der Cursor zuletzt stand. Am Mac und iPad kannst du ihn auch an die gewünschte Stelle ziehen. Über <b>Bearbeiten</b> fügst du eigene hinzu oder entfernst welche.</p>
 
     <h3>Prompt prüfen lassen</h3>
     <p><b>Prüfen lassen</b> kopiert deinen Prompt zusammen mit der Bitte, ihn zu bewerten. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung. Kosten entstehen dabei keine.</p>

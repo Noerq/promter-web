@@ -153,3 +153,6 @@ const DEFAULT_TEMPLATES = [
     },
   },
 ];
+
+// Startliste der Platzhalter-Übersicht (lässt sich in der App bearbeiten)
+const DEFAULT_PLACEHOLDERS = ['Empfänger', 'Absender', 'Thema', 'Datum', 'Zeitraum', 'Vorgang', 'Frist'];

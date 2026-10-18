@@ -57,6 +57,7 @@ Wahlweise auch mit **XML-Tags** (`<aufgabe>…</aufgabe>`). Sie markieren Anfang
 - **Vorschläge zum Abhaken:** fertige Bausteine wie „sachlich“, „Sie-Form“ oder „max. 1 Seite“, auch mehrere auf einmal
 - **Vorlagen:** typische Fälle wie *E-Mail beantworten*, *Bericht erstellen*, *Protokoll aus Notizen* oder *Text überarbeiten*, plus eigene Vorlagen. Beim Laden fragt Promter nach, bevor Eingaben überschrieben werden, und kann auch nur die leeren Felder füllen.
 - **Platzhalter:** `{Empfänger}`, `{Thema}` oder `{Datum}` in Vorlagen. Beim Laden fragt Promter die Werte ab und setzt sie überall ein. `{Datum}` ist vorausgefüllt, zuletzt verwendete Werte werden vorgeschlagen.
+- **Platzhalter-Übersicht:** alle Platzhalter als Schaltflächen über dem Ergebnis (auf dem iPhone unten in der Eingabe). Antippen fügt an der Cursor-Position ein, am Mac und iPad lassen sie sich auch an die gewünschte Stelle ziehen. Eigene Platzhalter lassen sich hinzufügen.
 - **Prüfen lassen:** kopiert den Prompt mit der Bitte um Prüfung. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung, ohne API und ohne Zusatzkosten.
 - **Hinweise:** wenn die Aufgabe fehlt, sehr knapp ist oder noch Platzhalter enthält
 - **Kopieren & Teilen:** Kopieren mit einem Klick oder ⌘↩. Auf iPhone und iPad schickt „Teilen“ den Prompt direkt an die Claude- oder ChatGPT-App.

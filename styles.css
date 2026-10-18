@@ -360,6 +360,7 @@ textarea.field-input::placeholder { color: var(--faint); }
   padding: 10px 24px calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--divider);
 }
+.vars-strip + .compact-bar { border-top: 0; }
 
 body.output-hidden .compact-bar { display: flex; }
 
@@ -396,7 +397,49 @@ body.output-hidden .compact-bar { display: flex; }
 .check-row .sub.replace { color: var(--warn); }
 .option-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--divider); }
 
+/* Platzhalter-Übersicht */
+.vars-panel {
+  flex: none;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--divider);
+}
+.vars-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.vars-head h2 { font-size: 15px; margin: 0; }
+.vars-hint { font-size: 12.5px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--field);
+  font: 13px/1.3 var(--mono);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--accent); }
+.chip:active { cursor: grabbing; }
+.chip.used { background: var(--accent-soft); border-color: transparent; }
+.chip.extra { border-style: dashed; }
+.chip .x { display: inline-flex; border: 0; background: none; padding: 0; margin-right: -4px; color: var(--muted); cursor: pointer; }
+.chip .x .i { width: 14px; height: 14px; }
+.vars-add { display: flex; gap: 8px; margin-top: 10px; }
+.vars-add .text-input { flex: 1; min-width: 0; padding: 7px 10px; }
+
+/* schmale Leiste in der Eingabe (iPhone bzw. bei ausgeblendetem Ergebnis) */
+.vars-strip { display: none; padding: 8px 24px 0; border-top: 1px solid var(--divider); }
+.vars-strip .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.vars-strip .chips::-webkit-scrollbar { display: none; }
+body.output-hidden .vars-strip { display: block; }
+
 .vars-fields { display: flex; flex-direction: column; gap: 12px; }
+.settings-vars { resize: vertical; font-family: var(--mono); font-size: 13.5px; line-height: 1.5; }
 .vars-fields label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 14px; }
 .warnings li.vars { color: var(--accent); align-items: center; }
 .warnings li.vars .link-btn { padding: 0; font-weight: 600; }
@@ -640,6 +683,9 @@ kbd {
   body[data-tab="input"] .output-pane { display: none; }
   body[data-tab="output"] .input-pane { display: none; }
   body[data-tab="output"] .output-pane { display: flex; }
+  .vars-strip, body.output-hidden .vars-strip { display: block; padding: 8px 16px 0; }
+  .vars-panel { display: none; }
+
   /* Kopieren/Teilen auch in der Eingabe-Ansicht */
   body .compact-bar, body.output-hidden .compact-bar { display: flex; }
   .compact-bar { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--bg); }
