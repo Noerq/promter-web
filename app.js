@@ -684,6 +684,13 @@ function openExport() {
   openDialog('dlg-export');
 }
 
+/** Präfix für Dateinamen nach dem Schema JJMMTTHHMM in Ortszeit, z. B. 2610180946 */
+function fileStamp(date = new Date()) {
+  const two = (n) => String(n).padStart(2, '0');
+  return two(date.getFullYear() % 100) + two(date.getMonth() + 1) + two(date.getDate())
+    + two(date.getHours()) + two(date.getMinutes());
+}
+
 async function saveFile(data, name) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
@@ -706,10 +713,9 @@ $('#export-confirm').addEventListener('click', async () => {
   const data = { app: 'Promter', format: 1, exportedAt: new Date().toISOString(), templates };
   if ($('#export-cats').checked) data.categories = state.categories;
 
-  const date = new Date().toISOString().slice(0, 10);
   const name = templates.length === 1 && !data.categories
-    ? `Promter-Vorlage-${templates[0].name.replace(/[^\p{L}\p{N}]+/gu, '-')}.json`
-    : `Promter-Vorlagen-${date}.json`;
+    ? `${fileStamp()}_Promter-Vorlage-${templates[0].name.replace(/[^\p{L}\p{N}]+/gu, '-')}.json`
+    : `${fileStamp()}_Promter-Vorlagen.json`;
   if (await saveFile(data, name)) {
     $('#dlg-export').close();
     toast(`${templates.length} Vorlage(n) exportiert`);
