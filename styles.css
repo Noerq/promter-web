@@ -391,8 +391,8 @@ body.output-hidden .compact-bar { display: flex; }
 /* ---------- Dialoge ---------- */
 
 dialog.sheet {
-  width: min(520px, calc(100vw - 32px));
-  max-height: min(720px, calc(100dvh - 48px));
+  width: min(600px, calc(100vw - 32px));
+  max-height: min(820px, calc(100dvh - 48px));
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -404,11 +404,18 @@ dialog.sheet {
 
 dialog.sheet[open] { display: flex; flex-direction: column; }
 dialog.sheet form { display: contents; }
-dialog.sheet.small { width: min(420px, calc(100vw - 32px)); }
-dialog.sheet.large { width: min(640px, calc(100vw - 32px)); }
+dialog.sheet.small { width: min(460px, calc(100vw - 32px)); }
+
+/* Listen-Fenster: feste, großzügige Höhe statt nach Inhalt */
+dialog.sheet.tall { height: min(680px, calc(100dvh - 48px)); }
+dialog.sheet.large {
+  width: min(760px, calc(100vw - 32px));
+  height: min(820px, calc(100dvh - 48px));
+}
 dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
 
 .sheet-head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -417,17 +424,19 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
 
 .sheet-head h2 { font-size: 20px; margin: 0; }
 
+/* flex-basis auto: Safari ließ den Inhaltsbereich mit "flex: 1" auf 0 Höhe schrumpfen */
 .sheet-body {
   padding: 8px 22px 16px;
   overflow-y: auto;
   min-height: 0;
-  flex: 1;
+  flex: 1 1 auto;
 }
 
 .sheet-body h3 { font-size: 16px; margin: 20px 0 6px; }
 .sheet-body h3:first-child { margin-top: 4px; }
 
 .sheet-foot {
+  flex: none;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -617,7 +626,12 @@ kbd {
   body[data-tab="input"] .output-pane { display: none; }
   body[data-tab="output"] .input-pane { display: none; }
   body[data-tab="output"] .output-pane { display: flex; }
-  body.output-hidden .compact-bar { display: none; }
+  /* Kopieren/Teilen auch in der Eingabe-Ansicht */
+  body .compact-bar, body.output-hidden .compact-bar { display: flex; }
+  .compact-bar { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--bg); }
+  .compact-bar .count { display: none; }
+  .compact-bar button { flex: 1; min-width: 0; }
+  .compact-bar .spacer { display: none; }
 
   .pane-scroll { padding: 16px 16px calc(28px + env(safe-area-inset-bottom)); }
   .output-pane { padding: 16px 16px calc(14px + env(safe-area-inset-bottom)); }
@@ -629,7 +643,7 @@ kbd {
   /* 16px verhindert das automatische Hineinzoomen von iOS in Textfelder */
   textarea.field-input, .text-input { font-size: 16px; }
 
-  dialog.sheet, dialog.sheet.small, dialog.sheet.large {
+  dialog.sheet, dialog.sheet.small, dialog.sheet.large, dialog.sheet.tall {
     width: 100vw;
     max-width: 100vw;
     max-height: calc(100dvh - 40px);
@@ -637,4 +651,6 @@ kbd {
     border-radius: 16px 16px 0 0;
     border-bottom: 0;
   }
+
+  dialog.sheet.large, dialog.sheet.tall { height: calc(100dvh - 40px); }
 }

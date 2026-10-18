@@ -243,7 +243,7 @@ function updateOutput() {
   compactWarn.title = list.join('\n');
 
   $$('[data-copy]').forEach((b) => { b.disabled = !prompt; });
-  $('#btn-share').disabled = !prompt;
+  $$('[data-share]').forEach((b) => { b.disabled = !prompt; });
 
   const optional = state.categories.filter((c) => c.isOptional);
   const filled = optional.filter((c) => clean(state.values[c.id])).length;
@@ -725,8 +725,10 @@ $('#ask').addEventListener('change', () => {
 $$('[data-copy]').forEach((button) => button.addEventListener('click', copyPrompt));
 
 if (navigator.share) {
-  $('#btn-share').hidden = false;
-  $('#btn-share').addEventListener('click', sharePrompt);
+  $$('[data-share]').forEach((button) => {
+    button.hidden = false;
+    button.addEventListener('click', sharePrompt);
+  });
 }
 
 document.addEventListener('keydown', (event) => {
