@@ -235,7 +235,7 @@ textarea.field-input::placeholder { color: var(--faint); }
 .optional summary::-webkit-details-marker { display: none; }
 .optional .chevron { width: 14px; height: 14px; color: var(--muted); transition: transform 0.15s; }
 .optional[open] .chevron { transform: rotate(90deg); }
-.optional-title { font-weight: 650; }
+.optional-title { font-weight: 650; white-space: nowrap; flex: none; }
 
 .optional-paren {
   color: var(--faint);
