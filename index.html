@@ -44,7 +44,8 @@
     <button class="tool" id="btn-templates" title="Vorlagen" aria-label="Vorlagen"><svg class="i"><use href="#i-doc"/></svg></button>
     <button class="tool" id="btn-history" title="Verlauf" aria-label="Verlauf"><svg class="i"><use href="#i-history"/></svg></button>
     <button class="tool" id="btn-clear" title="Alle Felder leeren" aria-label="Leeren"><svg class="i"><use href="#i-trash"/></svg></button>
-    <button class="tool desktop-only" id="btn-toggle-output" title="Ergebnisspalte ein-/ausblenden" aria-label="Ergebnisspalte ein-/ausblenden"><svg class="i"><use href="#i-sidebar"/></svg></button>
+    <button class="tool" id="btn-toggle-vars" title="Platzhalter ein-/ausblenden" aria-label="Platzhalter ein-/ausblenden" aria-pressed="true"><svg class="i"><use href="#i-braces"/></svg></button>
+    <button class="tool desktop-only" id="btn-toggle-output" title="Ergebnis ein-/ausblenden" aria-label="Ergebnis ein-/ausblenden" aria-pressed="true"><svg class="i"><use href="#i-sidebar"/></svg></button>
     <button class="tool" id="btn-settings" title="Einstellungen" aria-label="Einstellungen"><svg class="i"><use href="#i-sliders"/></svg></button>
     <button class="tool" id="btn-help" title="Hilfe" aria-label="Hilfe"><svg class="i"><use href="#i-help"/></svg></button>
   </div>
@@ -107,7 +108,7 @@
       <div class="vars-values-wrap" id="vars-values-wrap" hidden>
         <div class="vars-sub">Werte – gelten überall im Prompt</div>
         <div class="vars-values" id="vars-values"></div>
-        <div class="vars-sub">Einfügen</div>
+        <div class="vars-sub vars-sub-insert">Einfügen</div>
       </div>
       <div class="chips" data-chips data-editable></div>
       <form class="vars-add" id="vars-add" hidden>
@@ -116,6 +117,7 @@
       </form>
     </div>
 
+    <div class="output-main" id="output-main">
     <div class="output-head">
       <h2>Fertiger Prompt</h2>
       <div class="segmented" id="format-switch" role="radiogroup" aria-label="Format">
@@ -131,6 +133,7 @@
       <button class="secondary" id="btn-review" title="Kopiert den Prompt mit der Bitte um Prüfung – zum Einfügen in Claude"><svg class="i"><use href="#i-review"/></svg><span>Prüfen lassen</span></button>
       <button class="secondary" data-share hidden><svg class="i"><use href="#i-share"/></svg><span>Teilen</span></button>
       <button class="primary copy-btn" data-copy><svg class="i"><use href="#i-copy"/></svg><span>Kopieren</span></button>
+    </div>
     </div>
   </section>
 </main>
@@ -334,7 +337,7 @@
     <ol class="steps">
       <li><b>Vorlage wählen</b> (optional): Mit dem Dokument-Symbol oben füllst du typische Fälle wie „E-Mail beantworten“ vor.</li>
       <li><b>Felder ausfüllen:</b> Leere Felder erscheinen nicht im Prompt. Über „Vorschläge“ hakst du mehrere Bausteine auf einmal an.</li>
-      <li><b>Hinweise beachten:</b> Sie erscheinen, wenn z. B. die Aufgabe fehlt oder noch ein Platzhalter „…“ drinsteht.</li>
+      <li><b>Hinweise beachten:</b> Sie erscheinen, wenn z. B. die Aufgabe fehlt oder noch ein „…“ drinsteht. Platzhalter ohne Wert erkennst du am orangen Feld in der Übersicht.</li>
       <li><b>Kopieren oder Teilen:</b> „Teilen“ schickt den Prompt direkt an die Claude- oder ChatGPT-App.</li>
     </ol>
 
@@ -342,7 +345,7 @@
     <p>Im Vorlagen-Fenster unter <b>Exportieren …</b> wählst du einzelne oder alle Vorlagen aus und speicherst sie als Datei, z. B. in iCloud Drive. Mit <b>Importieren …</b> liest du sie auf einem anderen Gerät oder in der Mac-App wieder ein. Dabei wählst du aus, was übernommen wird. Vorlagen mit gleichem Namen werden ersetzt, alle anderen bleiben erhalten.</p>
 
     <h3>Platzhalter</h3>
-    <p>Platzhalter in geschweiften Klammern, z. B. <code>{Empfänger}</code>, <code>{Thema}</code> oder <code>{Datum}</code>, bleiben in deinen Eingaben stehen und sind farbig markiert. Ihre <b>Werte</b> trägst du rechts in der Übersicht ein (oder beim Laden einer Vorlage). Erst im fertigen Prompt wird der Wert eingesetzt, und zwar überall, wo der Platzhalter vorkommt. Änderst du einen Wert, ändert er sich an allen Stellen. <code>{Datum}</code> ist mit dem heutigen Datum vorausgefüllt, und Promter merkt sich zuletzt verwendete Werte.</p>
+    <p>Platzhalter in geschweiften Klammern, z. B. <code>{Empfänger}</code>, <code>{Thema}</code> oder <code>{Datum}</code>, bleiben in deinen Eingaben stehen und sind farbig markiert. Ihre <b>Werte</b> trägst du rechts in der Übersicht ein (oder beim Laden einer Vorlage). Erst im fertigen Prompt wird der Wert eingesetzt, und zwar überall, wo der Platzhalter vorkommt. Änderst du einen Wert, ändert er sich an allen Stellen. Fehlende Leerzeichen rund um einen Platzhalter ergänzt Promter dabei automatisch, außer vor Satzzeichen. Mit dem Klammer-Symbol <b>{ }</b> oben blendest du die Übersicht ein und aus, auf dem iPhone stehen die Werte in der Ansicht „Ergebnis“. <code>{Datum}</code> ist mit dem heutigen Datum vorausgefüllt, und Promter merkt sich zuletzt verwendete Werte.</p>
 
     <p><b>Platzhalter-Übersicht:</b> Rechts über dem Ergebnis (auf dem iPhone unten in der Eingabe) stehen deine Platzhalter als kleine Schaltflächen. Antippen fügt den Platzhalter dort ein, wo der Cursor zuletzt stand. Am Mac und iPad kannst du ihn auch an die gewünschte Stelle ziehen. Über <b>Bearbeiten</b> fügst du eigene hinzu oder entfernst welche.</p>
 

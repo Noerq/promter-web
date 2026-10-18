@@ -36,6 +36,7 @@ const state = {
   ask: store.get('ask', false),
   format: store.get('format', 'headings'),
   showOutput: store.get('showOutput', true),
+  showPlaceholders: store.get('showPlaceholders', true),
   placeholderList: store.get('placeholderList', [...DEFAULT_PLACEHOLDERS]),
   // Werte der Platzhalter – sie werden erst im fertigen Prompt eingesetzt
   placeholderValues: store.get('placeholderValues', {}),
@@ -120,9 +121,34 @@ function suggestedValue(name) {
   return store.get('placeholderMemory', {})[name] || '';
 }
 
-/** Setzt die Werte der Platzhalter ein; Platzhalter ohne Wert bleiben als {Name} stehen. */
+// Nach diesen Zeichen bzw. vor diesen Zeichen kommt kein zusätzliches Leerzeichen
+const NO_SPACE_AFTER_PREV = /[\s(\[{„"'«‚‹\/-]/u;
+const NO_SPACE_BEFORE_NEXT = /[\s.,;:!?)\]}“"'»‘›\/-]/u;
+
+/**
+ * Setzt die Werte der Platzhalter ein; Platzhalter ohne Wert bleiben als {Name} stehen.
+ * Fehlende Leerzeichen rund um einen eingesetzten Wert werden ergänzt (nicht vor Satzzeichen).
+ */
 function substitutePlaceholders(text) {
-  return (text || '').replace(PLACEHOLDER_RE, (all, name) => clean(state.placeholderValues[name.trim()]) || all);
+  const source = text || '';
+  let result = '';
+  let last = 0;
+  for (const match of source.matchAll(PLACEHOLDER_RE)) {
+    result += source.slice(last, match.index);
+    last = match.index + match[0].length;
+    const value = clean(state.placeholderValues[match[1].trim()]);
+    if (!value) {
+      result += match[0];
+      continue;
+    }
+    // Davor: am bisherigen Ergebnis prüfen – so entsteht zwischen zwei Platzhaltern nur ein Leerzeichen
+    const prev = result[result.length - 1];
+    const next = source[last];
+    const before = prev && !NO_SPACE_AFTER_PREV.test(prev) ? ' ' : '';
+    const after = next && next !== '{' && !NO_SPACE_BEFORE_NEXT.test(next) ? ' ' : '';
+    result += before + value + after;
+  }
+  return result + source.slice(last);
 }
 
 /** Verwendete Platzhalter, die noch keinen Wert haben */
@@ -207,9 +233,12 @@ function renderPlaceholderValues(force) {
   const used = placeholdersIn(state.values);
   const signature = JSON.stringify(used);
   if (!force && container.dataset.signature === signature) {
-    // Nur die Markierung „ohne Wert“ aktualisieren – Eingabefelder behalten so den Fokus
+    // Nur Werte und Markierung „ohne Wert“ aktualisieren – das Feld, in dem getippt wird, bleibt unberührt
     for (const row of $$('.var-row', container)) {
-      row.classList.toggle('missing', !clean(state.placeholderValues[row.dataset.name]));
+      const value = state.placeholderValues[row.dataset.name] || '';
+      const input = $('input', row);
+      if (input !== document.activeElement && input.value !== value) input.value = value;
+      row.classList.toggle('missing', !clean(value));
     }
     return;
   }
@@ -444,15 +473,8 @@ function updateOutput() {
   pre.classList.toggle('empty', !prompt);
 
   const list = warnings();
-  const openVars = missingPlaceholders();
-  const items = list.map((w) => el('li', {}, icon('warn'), el('span', {}, w)));
-  if (openVars.length) {
-    items.unshift(el('li', { class: 'vars' }, icon('braces'),
-      el('span', {}, `Platzhalter ohne Wert: ${openVars.map((n) => `{${n}}`).join(', ')} – `,
-        el('button', { class: 'link-btn', type: 'button', onclick: openPlaceholderDialog }, 'jetzt ausfüllen'))));
-    list.unshift(`Platzhalter ohne Wert: ${openVars.map((n) => `{${n}}`).join(', ')}`);
-  }
-  $('#warnings').replaceChildren(...items);
+  // Platzhalter ohne Wert zeigt die Übersicht (oranges Feld) – kein zusätzlicher Hinweis
+  $('#warnings').replaceChildren(...list.map((w) => el('li', {}, icon('warn'), el('span', {}, w))));
 
   const chars = [...prompt].length;
   const countText = `${chars.toLocaleString('de-DE')} Zeichen · ca. ${Math.floor(chars / 4).toLocaleString('de-DE')} Tokens`;
@@ -1078,13 +1100,26 @@ $('#btn-clear').addEventListener('click', () => {
 
 function applyOutputVisibility() {
   document.body.classList.toggle('output-hidden', !state.showOutput);
-  $('#btn-toggle-output').classList.toggle('active', !state.showOutput);
+  document.body.classList.toggle('vars-hidden', !state.showPlaceholders);
+  // Farbig = sichtbar
+  for (const [id, on] of [['#btn-toggle-output', state.showOutput], ['#btn-toggle-vars', state.showPlaceholders]]) {
+    $(id).classList.toggle('active', on);
+    $(id).setAttribute('aria-pressed', String(on));
+  }
+  $('#btn-toggle-output').title = state.showOutput ? 'Ergebnis ausblenden' : 'Ergebnis einblenden';
+  $('#btn-toggle-vars').title = state.showPlaceholders ? 'Platzhalter ausblenden' : 'Platzhalter einblenden';
   requestAnimationFrame(growAll);
 }
 
 $('#btn-toggle-output').addEventListener('click', () => {
   state.showOutput = !state.showOutput;
   store.set('showOutput', state.showOutput);
+  applyOutputVisibility();
+});
+
+$('#btn-toggle-vars').addEventListener('click', () => {
+  state.showPlaceholders = !state.showPlaceholders;
+  store.set('showPlaceholders', state.showPlaceholders);
   applyOutputVisibility();
 });
 

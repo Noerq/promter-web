@@ -128,7 +128,8 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .tool:hover, .icon-btn:hover { background: var(--hover); color: var(--text); }
 .tool .i { width: 20px; height: 20px; }
-.tool.active { color: var(--accent); }
+/* Umschalter: farbig = Bereich sichtbar, grau = ausgeblendet */
+.tool.active { color: var(--accent); background: var(--accent-soft); }
 
 .install-hint {
   display: flex;
@@ -151,8 +152,14 @@ button, input, textarea { font: inherit; color: inherit; }
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
 }
 
-body.output-hidden .layout { grid-template-columns: minmax(0, 1fr); }
-body.output-hidden .output-pane { display: none; }
+.output-main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+body.output-hidden .output-main { display: none; }
+body.vars-hidden .vars-panel { display: none; }
+/* Nur Platzhalter sichtbar: Übersicht bekommt die ganze Spalte */
+body.output-hidden .vars-panel { max-height: none; flex: 1; border-bottom: 0; }
+/* Beides ausgeblendet: Eingabe nutzt die volle Breite */
+body.output-hidden.vars-hidden .layout { grid-template-columns: minmax(0, 1fr); }
+body.output-hidden.vars-hidden .output-pane { display: none; }
 
 .pane { min-height: 0; display: flex; flex-direction: column; }
 
@@ -441,7 +448,7 @@ body.output-hidden .compact-bar { display: flex; }
 .vars-strip { display: none; padding: 8px 24px 0; border-top: 1px solid var(--divider); }
 .vars-strip .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
 .vars-strip .chips::-webkit-scrollbar { display: none; }
-body.output-hidden .vars-strip { display: block; }
+
 
 /* Werte der verwendeten Platzhalter */
 .vars-sub { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin: 4px 0 6px; }
@@ -725,8 +732,15 @@ kbd {
   body[data-tab="input"] .output-pane { display: none; }
   body[data-tab="output"] .input-pane { display: none; }
   body[data-tab="output"] .output-pane { display: flex; }
-  .vars-strip, body.output-hidden .vars-strip { display: block; padding: 8px 16px 0; }
-  .vars-panel { display: none; }
+  .vars-strip { display: block; padding: 8px 16px 0; }
+  body.vars-hidden .vars-strip { display: none; }
+  /* iPhone: in „Ergebnis“ nur die Werte der verwendeten Platzhalter, eingefügt wird über die Leiste */
+  .vars-panel { max-height: 40%; }
+  .vars-panel .vars-head, .vars-panel .chips, .vars-panel .vars-add, .vars-panel .vars-sub-insert { display: none; }
+  .vars-panel:has(#vars-values-wrap[hidden]) { display: none; }
+  body.output-hidden .output-main { display: flex; }
+  body.output-hidden.vars-hidden .output-pane { display: none; }
+  body[data-tab="output"].output-hidden.vars-hidden .output-pane { display: flex; }
 
   /* Kopieren/Teilen auch in der Eingabe-Ansicht */
   body .compact-bar, body.output-hidden .compact-bar { display: flex; }
