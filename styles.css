@@ -387,6 +387,8 @@ body.output-hidden .compact-bar { display: flex; }
 .secondary:hover { background: var(--divider); }
 .secondary.danger { color: var(--danger); }
 .copy-btn { min-width: 128px; }
+.primary.danger-fill { background: var(--danger); }
+.load-message { margin: 0 0 10px; }
 
 /* ---------- Dialoge ---------- */
 
@@ -653,4 +655,7 @@ kbd {
   }
 
   dialog.sheet.large, dialog.sheet.tall { height: calc(100dvh - 40px); }
+
+  .load-actions { flex-direction: column-reverse; align-items: stretch; }
+  .load-actions .spacer { display: none; }
 }

@@ -375,6 +375,48 @@ function applyValues(values, askQuestions) {
   updateOutput();
 }
 
+const filledValues = (values) => Object.fromEntries(
+  Object.entries(values || {}).filter(([, v]) => clean(v)).map(([k, v]) => [k, v.trim()]),
+);
+
+function sameValues(a, b) {
+  const x = filledValues(a);
+  const y = filledValues(b);
+  const keys = Object.keys(x);
+  return keys.length === Object.keys(y).length && keys.every((k) => x[k] === y[k]);
+}
+
+/**
+ * Lädt Werte aus einer Vorlage oder dem Verlauf. Gingen dabei Eingaben verloren,
+ * wird vorher gefragt: Ersetzen, nur leere Felder füllen oder abbrechen.
+ */
+function requestLoad({ title, values, askQuestions, done }) {
+  const hasInput = Object.keys(filledValues(state.values)).length > 0;
+  if (!hasInput || sameValues(state.values, values)) {
+    applyValues(values, askQuestions);
+    done('replace');
+    return;
+  }
+
+  const dialog = $('#dlg-load');
+  $('#load-title').textContent = title;
+  $('#load-replace').onclick = () => {
+    dialog.close();
+    applyValues(values, askQuestions);
+    done('replace');
+  };
+  $('#load-fill').onclick = () => {
+    dialog.close();
+    const merged = { ...state.values };
+    for (const [key, value] of Object.entries(values || {})) {
+      if (!clean(merged[key])) merged[key] = value;
+    }
+    applyValues(merged, state.ask || askQuestions);
+    done('fill');
+  };
+  openDialog('dlg-load');
+}
+
 function renderTemplateList() {
   const list = $('#template-list');
   if (!state.templates.length) {
@@ -385,11 +427,15 @@ function renderTemplateList() {
     el('button', {
       class: 'item',
       type: 'button',
-      onclick: () => {
-        applyValues(template.values, template.askQuestions);
-        $('#dlg-templates').close();
-        toast(`Vorlage „${template.name}“ geladen`);
-      },
+      onclick: () => requestLoad({
+        title: `Vorlage „${template.name}“ laden?`,
+        values: template.values,
+        askQuestions: template.askQuestions,
+        done: (mode) => {
+          $('#dlg-templates').close();
+          toast(mode === 'fill' ? `Leere Felder aus „${template.name}“ ergänzt` : `Vorlage „${template.name}“ geladen`);
+        },
+      }),
     }, el('span', { class: 'title' }, template.name)),
     el('button', {
       class: 'icon-btn',
@@ -466,11 +512,15 @@ function renderHistory() {
     return el('li', {}, el('button', {
       class: 'item',
       type: 'button',
-      onclick: () => {
-        applyValues(entry.values, entry.askQuestions);
-        $('#dlg-history').close();
-        toast('Eingaben aus dem Verlauf geladen');
-      },
+      onclick: () => requestLoad({
+        title: 'Eintrag aus dem Verlauf laden?',
+        values: entry.values,
+        askQuestions: entry.askQuestions,
+        done: (mode) => {
+          $('#dlg-history').close();
+          toast(mode === 'fill' ? 'Leere Felder aus dem Verlauf ergänzt' : 'Eingaben aus dem Verlauf geladen');
+        },
+      }),
     },
     el('span', { class: 'title' }, task || entry.prompt.slice(0, 120)),
     el('span', { class: 'sub' }, format.format(new Date(entry.date)))));

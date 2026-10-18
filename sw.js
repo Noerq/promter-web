@@ -1,7 +1,7 @@
 // Offline-Modus: Dateien der App zwischenspeichern.
 // Online wird immer die neueste Version geladen, offline die gespeicherte.
 // Bei Änderungen an der App die Versionsnummer erhöhen.
-const CACHE = 'promter-v2';
+const CACHE = 'promter-v3';
 const ASSETS = [
   './',
   'index.html',

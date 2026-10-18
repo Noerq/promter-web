@@ -130,7 +130,7 @@
     <button class="icon-btn" data-close aria-label="Schließen"><svg class="i"><use href="#i-close"/></svg></button>
   </div>
   <div class="sheet-body">
-    <p class="muted">Tippe auf eine Vorlage, um sie zu laden. Die aktuellen Eingaben werden dabei ersetzt.</p>
+    <p class="muted">Tippe auf eine Vorlage, um sie zu laden. Hast du schon etwas eingetragen, fragt Promter vorher nach.</p>
     <ul class="list" id="template-list"></ul>
   </div>
   <div class="sheet-foot wrap">
@@ -154,6 +154,21 @@
       <button class="primary" type="submit" id="save-confirm">Speichern</button>
     </div>
   </form>
+</dialog>
+
+<!-- Rückfrage beim Laden einer Vorlage / eines Verlaufseintrags -->
+<dialog id="dlg-load" class="sheet small">
+  <div class="sheet-head"><h2 id="load-title">Vorlage laden?</h2></div>
+  <div class="sheet-body">
+    <p class="load-message">Deine aktuellen Eingaben würden dabei ersetzt.</p>
+    <p class="muted"><b>Nur leere Felder füllen</b> behält, was du schon eingetragen hast, und ergänzt den Rest aus der Vorlage.</p>
+  </div>
+  <div class="sheet-foot load-actions">
+    <button class="secondary" type="button" data-close>Abbrechen</button>
+    <span class="spacer"></span>
+    <button class="secondary" type="button" id="load-fill">Nur leere Felder füllen</button>
+    <button class="primary danger-fill" type="button" id="load-replace">Ersetzen</button>
+  </div>
 </dialog>
 
 <!-- Verlauf -->
