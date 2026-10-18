@@ -43,6 +43,27 @@ const state = {
 };
 
 const saveCategories = () => store.set('categories', state.categories);
+
+/**
+ * Bringt gespeicherte Kategorien einmalig auf den Stand der mitgelieferten Vorschläge:
+ * veraltete mitgelieferte Vorschläge entfernen, neue ergänzen – eigene Vorschläge,
+ * Überschriften und Hinweise bleiben erhalten.
+ */
+function mergedPresets(categories) {
+  return categories.map((category) => {
+    const fresh = DEFAULT_CATEGORIES.find((c) => c.id === category.id);
+    if (!fresh) return category;
+    const own = (category.presets || []).map((p) => p.trim())
+      .filter((p) => p && !RETIRED_PRESETS.includes(p) && !fresh.presets.includes(p));
+    return { ...category, presets: [...fresh.presets, ...own] };
+  });
+}
+
+if (store.get('presetsVersion', 0) < DEFAULT_PRESETS_VERSION) {
+  state.categories = mergedPresets(state.categories);
+  saveCategories();
+  store.set('presetsVersion', DEFAULT_PRESETS_VERSION);
+}
 const saveTemplates = () => store.set('templates', state.templates);
 const saveHistory = () => store.set('history', state.history);
 const saveDraft = () => {

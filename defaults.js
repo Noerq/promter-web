@@ -290,5 +290,9 @@ const DEFAULT_TEMPLATES = [
   }
 ];
 
+// Stand der mitgelieferten Vorschläge und früher mitgelieferte, inzwischen veraltete Vorschläge
+const DEFAULT_PRESETS_VERSION = 2;
+const RETIRED_PRESETS = ["Formuliere eine E-Mail an …", "Erstelle einen Bericht über …", "Formuliere eine E-Mail an {Empfänger}.", "Erstelle einen Bericht über {Thema}.", "Beantworte die unten eingefügte E-Mail.", "Erstelle aus den unten eingefügten Notizen ein Protokoll.", "Die Lesenden wissen danach, was bis wann zu tun ist."];
+
 // Startliste der Platzhalter-Übersicht (lässt sich in der App bearbeiten)
 const DEFAULT_PLACEHOLDERS = ["Empfänger", "Absender", "Thema", "Datum", "Zeitraum", "Vorgang", "Aktenzeichen", "Frist", "Termin"];
