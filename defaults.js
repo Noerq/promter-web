@@ -19,9 +19,9 @@ const DEFAULT_CATEGORIES = [
     id: 'aufgabe', title: 'Aufgabe', isOptional: false,
     hint: 'Was genau soll herauskommen? Mit einem Verb beginnen: „Formuliere …“, „Fasse … zusammen“',
     presets: [
-      'Formuliere eine E-Mail an …',
+      'Formuliere eine E-Mail an {Empfänger}.',
       'Beantworte die unten eingefügte E-Mail.',
-      'Erstelle einen Bericht über …',
+      'Erstelle einen Bericht über {Thema}.',
       'Fasse das unten eingefügte Dokument zusammen.',
       'Erstelle aus den unten eingefügten Notizen ein Protokoll.',
       'Überarbeite den unten eingefügten Text sprachlich.',
@@ -108,7 +108,7 @@ const DEFAULT_TEMPLATES = [
     id: '6f2b1c3a-8d4e-4a1b-9c2d-1e5f7a9b0c02', name: 'E-Mail verfassen', askQuestions: false,
     values: {
       rolle: 'Du bist eine erfahrene Verwaltungsfachkraft und formulierst professionelle E-Mails.',
-      aufgabe: 'Formuliere eine E-Mail an …',
+      aufgabe: 'Formuliere eine E-Mail an {Empfänger} zum Thema {Thema}.',
       ton: 'freundlich, sachlich, Sie-Form',
       format: 'E-Mail mit Betreffzeile, Anrede und Grußformel; max. 150 Wörter',
       rahmen: 'Keine Floskeln. Klar benennen, was ich vom Empfänger brauche und bis wann.',
@@ -118,7 +118,7 @@ const DEFAULT_TEMPLATES = [
     id: '6f2b1c3a-8d4e-4a1b-9c2d-1e5f7a9b0c03', name: 'Bericht erstellen', askQuestions: true,
     values: {
       rolle: 'Du bist eine erfahrene Sachbearbeitung und schreibst klare, gut strukturierte Berichte.',
-      aufgabe: 'Erstelle einen Bericht über …',
+      aufgabe: 'Erstelle einen Bericht über {Thema} für den Zeitraum {Zeitraum}.',
       zielgruppe: 'Vorgesetzte / Leitungsebene',
       ton: 'sachlich, präzise, neutral',
       format: 'Gliederung mit Zwischenüberschriften: Anlass, Sachstand, Bewertung, Empfehlung; max. 1 Seite',

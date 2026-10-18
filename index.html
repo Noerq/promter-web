@@ -32,6 +32,8 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-review" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20M8 10.5l1.8 1.8 3.4-3.6"/></symbol>
+  <symbol id="i-braces" viewBox="0 0 24 24"><path d="M8 4H7a2 2 0 0 0-2 2v3.5a2.5 2.5 0 0 1-2 2.5 2.5 2.5 0 0 1 2 2.5V18a2 2 0 0 0 2 2h1M16 4h1a2 2 0 0 1 2 2v3.5a2.5 2.5 0 0 0 2 2.5 2.5 2.5 0 0 0-2 2.5V18a2 2 0 0 1-2 2h-1"/></symbol>
   <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
 </svg>
@@ -103,6 +105,7 @@
     <div class="output-foot">
       <span class="count" id="count"></span>
       <span class="spacer"></span>
+      <button class="secondary" id="btn-review" title="Kopiert den Prompt mit der Bitte um Prüfung – zum Einfügen in Claude"><svg class="i"><use href="#i-review"/></svg><span>Prüfen lassen</span></button>
       <button class="secondary" data-share hidden><svg class="i"><use href="#i-share"/></svg><span>Teilen</span></button>
       <button class="primary copy-btn" data-copy><svg class="i"><use href="#i-copy"/></svg><span>Kopieren</span></button>
     </div>
@@ -209,6 +212,22 @@
   </form>
 </dialog>
 
+<!-- Platzhalter ausfüllen -->
+<dialog id="dlg-vars" class="sheet small">
+  <form method="dialog" id="vars-form">
+    <div class="sheet-head"><h2>Platzhalter ausfüllen</h2></div>
+    <div class="sheet-body">
+      <p class="muted">Was du hier einträgst, wird überall im Prompt eingesetzt. Leer gelassene Platzhalter bleiben stehen und lassen sich später ausfüllen.</p>
+      <div id="vars-fields" class="vars-fields"></div>
+    </div>
+    <div class="sheet-foot">
+      <span class="spacer"></span>
+      <button class="secondary" type="button" data-close>Später</button>
+      <button class="primary" type="submit">Einsetzen</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Rückfrage beim Laden einer Vorlage / eines Verlaufseintrags -->
 <dialog id="dlg-load" class="sheet small">
   <div class="sheet-head"><h2 id="load-title">Vorlage laden?</h2></div>
@@ -294,6 +313,12 @@
 
     <h3>Vorlagen übertragen und weitergeben</h3>
     <p>Im Vorlagen-Fenster unter <b>Exportieren …</b> wählst du einzelne oder alle Vorlagen aus und speicherst sie als Datei, z. B. in iCloud Drive. Mit <b>Importieren …</b> liest du sie auf einem anderen Gerät oder in der Mac-App wieder ein. Dabei wählst du aus, was übernommen wird. Vorlagen mit gleichem Namen werden ersetzt, alle anderen bleiben erhalten.</p>
+
+    <h3>Platzhalter in Vorlagen</h3>
+    <p>Schreibe in eine Vorlage Platzhalter in geschweiften Klammern, z. B. <code>{Empfänger}</code>, <code>{Thema}</code> oder <code>{Datum}</code>. Beim Laden fragt Promter die Werte ab und setzt sie überall ein. <code>{Datum}</code> ist mit dem heutigen Datum vorausgefüllt, und Promter merkt sich, was du zuletzt eingetragen hast. Offene Platzhalter zeigt Promter unter dem Prompt an, dort lassen sie sich jederzeit ausfüllen.</p>
+
+    <h3>Prompt prüfen lassen</h3>
+    <p><b>Prüfen lassen</b> kopiert deinen Prompt zusammen mit der Bitte, ihn zu bewerten. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung. Kosten entstehen dabei keine.</p>
 
     <h3>Die Kategorien</h3>
     <dl class="cat-help" id="help-categories"></dl>
