@@ -58,6 +58,8 @@ Wahlweise auch mit **XML-Tags** (`<aufgabe>…</aufgabe>`). Sie markieren Anfang
 - **Vorlagen:** typische Fälle wie *E-Mail beantworten*, *Bericht erstellen*, *Protokoll aus Notizen* oder *Text überarbeiten*, plus eigene Vorlagen. Beim Laden fragt Promter nach, bevor Eingaben überschrieben werden, und kann auch nur die leeren Felder füllen.
 - **Platzhalter:** `{Empfänger}`, `{Thema}` oder `{Datum}` bleiben im Text stehen und sind farbig markiert. Ihre Werte trägst du einmal ein, und sie gelten überall im fertigen Prompt. Fehlende Leerzeichen rund um einen Platzhalter ergänzt Promter automatisch. Änderst du einen Wert, ändert er sich an allen Stellen. `{Datum}` ist vorausgefüllt, zuletzt verwendete Werte werden vorgeschlagen.
 - **Platzhalter-Übersicht:** über dem Ergebnis die Werte aller verwendeten Platzhalter und alle Platzhalter als Schaltflächen (auf dem iPhone unten in der Eingabe). Antippen fügt an der Cursor-Position ein, am Mac und iPad lassen sie sich auch an die gewünschte Stelle ziehen. Eigene Platzhalter lassen sich hinzufügen.
+- **Feste Werte in Vorlagen:** beim Speichern einzelne Werte mitspeichern (z. B. deinen Absender); sie werden beim Laden automatisch eingesetzt.
+- **Warnung beim Kopieren:** fehlt noch ein Wert, zeigt der Kopieren-Knopf kurz orange, welcher Platzhalter leer ist.
 - **Prüfen lassen:** kopiert den Prompt mit der Bitte um Prüfung. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung, ohne API und ohne Zusatzkosten.
 - **Hinweise:** wenn die Aufgabe fehlt, sehr knapp ist oder noch Platzhalter enthält
 - **Kopieren & Teilen:** Kopieren mit einem Klick oder ⌘↩. Auf iPhone und iPad schickt „Teilen“ den Prompt direkt an die Claude- oder ChatGPT-App.
@@ -96,4 +98,4 @@ Danach `http://localhost:8765` im Browser öffnen.
 
 ## Über
 
-Promter wird von [Noerq](https://github.com/Noerq) entwickelt. Es gibt Promter auch als App für den Mac.
+Promter wird von [Noerq](https://github.com/Noerq) entwickelt. Aktuelle Web-Version: 2.6. Es gibt Promter auch als App für den Mac (Stand 2.5).

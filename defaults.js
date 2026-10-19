@@ -23,7 +23,7 @@ const DEFAULT_CATEGORIES = [
     "id": "aufgabe",
     "title": "Aufgabe",
     "isOptional": false,
-    "hint": "Was genau soll herauskommen? Mit einem Verb beginnen: „Formuliere …“, „Fasse … zusammen“",
+    "hint": "Was genau soll herauskommen? Mit einem Verb beginnen, z. B. „Formuliere eine E-Mail an {Empfänger}“ oder „Fasse das Dokument zusammen“",
     "presets": [
       "Formuliere eine E-Mail an {Empfänger} zum Thema {Thema}.",
       "Beantworte die unten eingefügte E-Mail von {Empfänger}.",
@@ -291,8 +291,9 @@ const DEFAULT_TEMPLATES = [
 ];
 
 // Stand der mitgelieferten Vorschläge und früher mitgelieferte, inzwischen veraltete Vorschläge
-const DEFAULT_PRESETS_VERSION = 2;
+const DEFAULT_PRESETS_VERSION = 3;
 const RETIRED_PRESETS = ["Formuliere eine E-Mail an …", "Erstelle einen Bericht über …", "Formuliere eine E-Mail an {Empfänger}.", "Erstelle einen Bericht über {Thema}.", "Beantworte die unten eingefügte E-Mail.", "Erstelle aus den unten eingefügten Notizen ein Protokoll.", "Die Lesenden wissen danach, was bis wann zu tun ist."];
+const RETIRED_HINTS = ["Was genau soll herauskommen? Mit einem Verb beginnen: „Formuliere …“, „Fasse … zusammen“"];
 
 // Startliste der Platzhalter-Übersicht (lässt sich in der App bearbeiten)
 const DEFAULT_PLACEHOLDERS = ["Empfänger", "Absender", "Thema", "Datum", "Zeitraum", "Vorgang", "Aktenzeichen", "Frist", "Termin"];

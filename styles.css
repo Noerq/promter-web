@@ -788,3 +788,12 @@ kbd {
 }
 
 .help a { color: var(--accent); }
+
+/* Web 2.6: Warnung beim Kopieren, Werte leeren, Werte in Vorlagen */
+.copy-btn.warn { background: var(--warn); }
+.copy-btn span { overflow: hidden; text-overflow: ellipsis; }
+.vars-sub-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.vars-sub-row .link-btn { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 500; padding: 0; white-space: nowrap; flex: none; }
+.save-vars { margin-top: 18px; }
+.save-vars h3 { font-size: 15px; margin: 0 0 4px; }
+.save-vars .var-value { color: var(--muted); }

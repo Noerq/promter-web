@@ -106,7 +106,10 @@
         <button class="link-btn" type="button" id="vars-edit">Bearbeiten</button>
       </div>
       <div class="vars-values-wrap" id="vars-values-wrap" hidden>
-        <div class="vars-sub">Werte – gelten überall im Prompt</div>
+        <div class="vars-sub vars-sub-row">
+          <span>Werte – gelten überall im Prompt</span>
+          <button class="link-btn" type="button" id="vars-clear" hidden>Alle Werte leeren</button>
+        </div>
         <div class="vars-values" id="vars-values"></div>
         <div class="vars-sub vars-sub-insert">Einfügen</div>
       </div>
@@ -229,6 +232,11 @@
     <div class="sheet-body">
       <input type="text" id="save-name" class="text-input" placeholder="Name der Vorlage" autocomplete="off" required>
       <p class="hint warn-text" id="save-overwrite" hidden></p>
+      <div class="save-vars" id="save-vars" hidden>
+        <h3>Werte mitspeichern</h3>
+        <p class="muted">Angehakte Werte werden beim Laden der Vorlage automatisch eingesetzt – z. B. ein fester Absender. Wechselnde Werte wie den Empfänger lieber frei lassen.</p>
+        <div id="save-vars-list"></div>
+      </div>
     </div>
     <div class="sheet-foot">
       <span class="spacer"></span>
@@ -349,6 +357,9 @@
 
     <p><b>Platzhalter-Übersicht:</b> Rechts über dem Ergebnis (auf dem iPhone unten in der Eingabe) stehen deine Platzhalter als kleine Schaltflächen. Antippen fügt den Platzhalter dort ein, wo der Cursor zuletzt stand. Am Mac und iPad kannst du ihn auch an die gewünschte Stelle ziehen. Über <b>Bearbeiten</b> fügst du eigene hinzu oder entfernst welche.</p>
 
+    <p><b>Feste Werte in Vorlagen:</b> Beim Speichern einer Vorlage kannst du einzelne Werte mitspeichern, z. B. deinen Absender. Sie werden beim Laden automatisch eingesetzt. <code>{Datum}</code> wird nie gespeichert. Mit <b>Alle Werte leeren</b> in der Übersicht startest du frisch in den nächsten Vorgang.</p>
+    <p><b>Leere Platzhalter beim Kopieren:</b> Hat ein Platzhalter noch keinen Wert, wird trotzdem kopiert – der Knopf zeigt dann kurz orange, welcher Wert fehlt.</p>
+
     <h3>Prompt prüfen lassen</h3>
     <p><b>Prüfen lassen</b> kopiert deinen Prompt zusammen mit der Bitte, ihn zu bewerten. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung. Kosten entstehen dabei keine.</p>
 
@@ -362,6 +373,7 @@
     <p>Alles bleibt auf diesem Gerät in diesem Browser gespeichert und wird nirgendwohin gesendet. Auf dem iPhone und iPad gilt: Promter über <b>Teilen → Zum Home-Bildschirm</b> hinzufügen. Sonst kann Safari die Daten nach längerer Nichtbenutzung löschen. Zusätzlich sicherst du deine Vorlagen unter <b>Einstellungen → Exportieren</b>.</p>
 
     <h3>Über Promter</h3>
+    <p class="muted" id="app-version"></p>
     <p>Promter wird von <a href="https://github.com/Noerq" target="_blank" rel="noopener">Noerq</a> entwickelt. Quellcode und Neuigkeiten: <a href="https://github.com/Noerq/promter-web" target="_blank" rel="noopener">github.com/Noerq/promter-web</a>. Es gibt Promter auch als App für den Mac.</p>
 
     <h3>Tastenkombinationen</h3>

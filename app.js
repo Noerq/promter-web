@@ -25,6 +25,10 @@ const uuid = () => (crypto.randomUUID
       return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
     }));
 
+// Versionsstand der Web-App. Die Mac-App ist seit Web 2.6 auf 2.5 eingefroren (siehe MAC-NACHZUG.md).
+const APP_VERSION = '2.6';
+const MAC_VERSION = '2.5';
+
 const HISTORY_LIMIT = 50;
 const LARGE_FIELDS = new Set(['material', 'beispiele', 'kontext']);
 
@@ -55,7 +59,9 @@ function mergedPresets(categories) {
     if (!fresh) return category;
     const own = (category.presets || []).map((p) => p.trim())
       .filter((p) => p && !RETIRED_PRESETS.includes(p) && !fresh.presets.includes(p));
-    return { ...category, presets: [...fresh.presets, ...own] };
+    // Hinweistext nur ersetzen, wenn er ein früherer Standard-Hinweis ist (eigene Hinweise bleiben)
+    const hint = RETIRED_HINTS.includes(category.hint) ? fresh.hint : category.hint;
+    return { ...category, hint, presets: [...fresh.presets, ...own] };
   });
 }
 
@@ -252,6 +258,7 @@ function insertPlaceholder(name) {
 function renderPlaceholderValues(force) {
   const container = $('#vars-values');
   const used = placeholdersIn(state.values);
+  $('#vars-clear').hidden = !used.some((name) => clean(state.placeholderValues[name]));
   const signature = JSON.stringify(used);
   if (!force && container.dataset.signature === signature) {
     // Nur Werte und Markierung „ohne Wert“ aktualisieren – das Feld, in dem getippt wird, bleibt unberührt
@@ -568,21 +575,36 @@ async function copyPrompt() {
     return;
   }
   addHistory(prompt);
+  const warning = missingWarning();
   $$('[data-copy]').forEach((button) => {
-    button.replaceChildren(icon('check'), el('span', {}, 'Kopiert!'));
+    button.classList.toggle('warn', !!warning);
+    button.replaceChildren(icon(warning ? 'warn' : 'check'), el('span', {}, warning ? `Kopiert – ${warning}` : 'Kopiert!'));
   });
+  if (warning) toast(`Kopiert – ${warning}`);
   clearTimeout(copiedTimer);
   copiedTimer = setTimeout(() => {
-    $$('[data-copy]').forEach((button) => button.replaceChildren(icon('copy'), el('span', {}, 'Kopieren')));
-  }, 1500);
+    $$('[data-copy]').forEach((button) => {
+      button.classList.remove('warn');
+      button.replaceChildren(icon('copy'), el('span', {}, 'Kopieren'));
+    });
+  }, warning ? 3000 : 1500);
+}
+
+/** Text für die Warnung „Platzhalter ohne Wert“ beim Kopieren/Teilen, sonst leer. */
+function missingWarning() {
+  const missing = missingPlaceholders();
+  if (!missing.length) return '';
+  return missing.length === 1 ? `{${missing[0]}} ist leer` : `${missing.length} Platzhalter leer`;
 }
 
 async function sharePrompt() {
   const prompt = buildPrompt();
   if (!prompt || !navigator.share) return;
   try {
+    const warning = missingWarning();
     await navigator.share({ text: prompt });
     addHistory(prompt);
+    if (warning) toast(`Geteilt – ${warning}`);
   } catch { /* abgebrochen */ }
 }
 
@@ -705,12 +727,14 @@ function renderTemplateList() {
         title: `Vorlage „${template.name}“ laden?`,
         values: template.values,
         askQuestions: template.askQuestions,
+        placeholderValues: template.placeholderValues,
         done: (mode) => {
           $('#dlg-templates').close();
           toast(mode === 'fill' ? `Leere Felder aus „${template.name}“ ergänzt` : `Vorlage „${template.name}“ geladen`);
         },
       }),
-    }, el('span', { class: 'title' }, template.name)),
+    }, el('span', { class: 'title' }, template.name),
+    savedValuesSummary(template) ? el('span', { class: 'sub' }, savedValuesSummary(template)) : null),
     el('button', {
       class: 'icon-btn',
       type: 'button',
@@ -741,7 +765,8 @@ $('#templates-restore').addEventListener('click', () => {
   if (outdated.length && confirm(`${outdated.length} mitgelieferte Vorlage(n) gibt es in einer neuen Fassung (${outdated.map((t) => `„${t.name}“`).join(', ')}).\n\nAuf die neue Fassung aktualisieren? Eigene Änderungen an diesen Vorlagen gehen dabei verloren. Deine eigenen Vorlagen bleiben unberührt.`)) {
     for (const d of outdated) {
       const index = state.templates.findIndex((t) => t.name === d.name);
-      state.templates[index] = { ...clone(d), id: state.templates[index].id };
+      const kept = state.templates[index].placeholderValues;
+      state.templates[index] = { ...clone(d), id: state.templates[index].id, ...(kept ? { placeholderValues: kept } : {}) };
       updated++;
     }
   }
@@ -761,9 +786,37 @@ $('#templates-restore').addEventListener('click', () => {
   toast(parts.length ? `Vorlagen: ${parts.join(', ')}` : 'Alle mitgelieferten Vorlagen sind aktuell');
 });
 
+/** „Absender: Kalle · Abteilung: Bau“ – gespeicherte Werte einer Vorlage als Kurztext */
+function savedValuesSummary(template) {
+  return Object.entries(template.placeholderValues || {})
+    .filter(([, value]) => clean(value))
+    .map(([name, value]) => `${name}: ${value}`)
+    .join(' · ');
+}
+
+/** Platzhalter, deren Wert sich mitspeichern lässt: im Text verwendet, mit Wert, nicht {Datum} */
+function saveablePlaceholders() {
+  return placeholdersIn(state.values)
+    .filter((name) => !/^datum$/i.test(name) && clean(state.placeholderValues[name]));
+}
+
+function renderSaveVars() {
+  const names = saveablePlaceholders();
+  $('#save-vars').hidden = names.length === 0;
+  const existing = state.templates.find((t) => t.name === $('#save-name').value.trim());
+  const preselected = new Set(Object.keys(existing?.placeholderValues || {}));
+  $('#save-vars-list').replaceChildren(...names.map((name) => {
+    const box = el('input', { type: 'checkbox', 'data-name': name });
+    box.checked = preselected.has(name);
+    return el('label', { class: 'check-row' }, box,
+      el('span', {}, `{${name}} `, el('span', { class: 'var-value' }, `= ${state.placeholderValues[name].trim()}`)));
+  }));
+}
+
 $('#templates-save').addEventListener('click', () => {
   $('#save-name').value = '';
   $('#save-overwrite').hidden = true;
+  renderSaveVars();
   openDialog('dlg-save');
   $('#save-name').focus();
 });
@@ -773,6 +826,7 @@ $('#save-name').addEventListener('input', () => {
   const exists = state.templates.some((t) => t.name === name);
   $('#save-overwrite').hidden = !exists;
   $('#save-overwrite').textContent = `Die bestehende Vorlage „${name}“ wird überschrieben.`;
+  renderSaveVars();
 });
 
 $('#save-form').addEventListener('submit', (event) => {
@@ -780,12 +834,19 @@ $('#save-form').addEventListener('submit', (event) => {
   const name = $('#save-name').value.trim();
   if (!name) return;
   const values = Object.fromEntries(Object.entries(state.values).filter(([, v]) => clean(v)));
+  // Angehakte Werte mitspeichern ({Datum} steht gar nicht zur Auswahl)
+  const keep = $$('#save-vars-list input:checked').map((box) => box.dataset.name);
+  const placeholderValues = Object.fromEntries(keep.map((n) => [n, state.placeholderValues[n].trim()]));
   const existing = state.templates.find((t) => t.name === name);
   if (existing) {
     existing.values = values;
     existing.askQuestions = state.ask;
+    if (keep.length) existing.placeholderValues = placeholderValues;
+    else delete existing.placeholderValues;
   } else {
-    state.templates.push({ id: uuid(), name, values, askQuestions: state.ask });
+    const template = { id: uuid(), name, values, askQuestions: state.ask };
+    if (keep.length) template.placeholderValues = placeholderValues;
+    state.templates.push(template);
   }
   saveTemplates();
   renderTemplateList();
@@ -1094,6 +1155,10 @@ $('#import-confirm').addEventListener('click', () => {
       values: template.values,
       askQuestions: !!template.askQuestions,
     };
+    if (template.placeholderValues && typeof template.placeholderValues === 'object') {
+      entry.placeholderValues = Object.fromEntries(Object.entries(template.placeholderValues)
+        .filter(([k, v]) => typeof k === 'string' && typeof v === 'string' && clean(v)));
+    }
     if (index === -1) state.templates.push(entry);
     else state.templates[index] = entry;
   }
@@ -1253,6 +1318,18 @@ $('#vars-add').addEventListener('submit', (event) => {
   $('#vars-new').value = '';
   renderChips();
 });
+
+/* ---------- Alle Werte leeren, Version ---------- */
+
+$('#vars-clear').addEventListener('click', () => {
+  state.placeholderValues = {};
+  saveDraft();
+  renderChips(true);
+  updateOutput();
+  toast('Alle Werte geleert');
+});
+
+$('#app-version').textContent = `Web-Version ${APP_VERSION} · Mac-App ${MAC_VERSION}`;
 
 /* ---------- Start ---------- */
 
