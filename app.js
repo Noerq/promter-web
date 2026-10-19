@@ -26,7 +26,7 @@ const uuid = () => (crypto.randomUUID
     }));
 
 // Versionsstand der Web-App. Die Mac-App ist seit Web 2.6 auf 2.5 eingefroren (siehe MAC-NACHZUG.md).
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 const MAC_VERSION = '2.5';
 
 const HISTORY_LIMIT = 50;
@@ -230,7 +230,6 @@ function openPlaceholderDialog() {
 
 const PLACEHOLDER_NAME_RE = /^\p{L}[\p{L}\p{N} _-]{0,30}$/u;
 let lastField = null;
-let editingPlaceholders = false;
 
 // Merkt sich das zuletzt benutzte Feld – dort wird beim Antippen eingefügt
 for (const type of ['focusin', 'pointerup', 'keyup', 'input', 'select']) {
@@ -292,8 +291,7 @@ function renderChips(force = false) {
   const names = [...state.placeholderList, ...[...used].filter((n) => !state.placeholderList.includes(n))];
 
   for (const container of $$('[data-chips]')) {
-    const editable = container.hasAttribute('data-editable') && editingPlaceholders;
-    const signature = JSON.stringify([names, [...used], editable]);
+    const signature = JSON.stringify([names, [...used]]);
     if (!force && container.dataset.signature === signature) continue;
     container.dataset.signature = signature;
     container.replaceChildren(...names.map((name) => {
@@ -315,19 +313,6 @@ function renderChips(force = false) {
         event.dataTransfer.setData('text/plain', `{${name}}`);
         event.dataTransfer.effectAllowed = 'copy';
       });
-      if (editable && inList) {
-        chip.append(el('button', {
-          class: 'x',
-          type: 'button',
-          title: `{${name}} aus der Übersicht entfernen`,
-          onclick: (event) => {
-            event.stopPropagation();
-            state.placeholderList = state.placeholderList.filter((n) => n !== name);
-            store.set('placeholderList', state.placeholderList);
-            renderChips(true);
-          },
-        }, icon('close')));
-      }
       return chip;
     }));
   }
@@ -968,19 +953,130 @@ function renderCategoryEditor(openId) {
   }));
 }
 
-$('#settings-vars').addEventListener('input', () => {
-  // Nur gültige Namen übernehmen, geschweifte Klammern und Doppelte entfernen
-  const names = $('#settings-vars').value.split('\n').map((n) => n.replace(/[{}]/g, '').trim()).filter((n) => PLACEHOLDER_NAME_RE.test(n));
-  state.placeholderList = [...new Set(names)];
-  store.set('placeholderList', state.placeholderList);
-  renderChips();
+/* ---------- Einstellungen: Reiter ---------- */
+
+const SETTINGS_PANES = ['kategorien', 'platzhalter', 'darstellung', 'daten'];
+
+function showSettingsPane(pane) {
+  if (!SETTINGS_PANES.includes(pane)) pane = 'kategorien';
+  $$('#settings-tabs [data-pane]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.pane === pane);
+    b.setAttribute('aria-selected', String(b.dataset.pane === pane));
+  });
+  $$('#dlg-settings .settings-pane').forEach((section) => { section.hidden = section.dataset.pane !== pane; });
+  store.set('settingsPane', pane);
+}
+
+function openSettings(pane = store.get('settingsPane', 'kategorien')) {
+  renderCategoryEditor();
+  renderPlaceholderEditor();
+  renderThemeSwitch();
+  showSettingsPane(pane);
+  openDialog('dlg-settings');
+}
+
+$$('#settings-tabs [data-pane]').forEach((button) => {
+  button.addEventListener('click', () => showSettingsPane(button.dataset.pane));
 });
 
-$('#btn-settings').addEventListener('click', () => {
-  $('#settings-vars').value = state.placeholderList.join('\n');
-  renderCategoryEditor();
-  openDialog('dlg-settings');
+$('#btn-settings').addEventListener('click', () => openSettings());
+
+/* ---------- Einstellungen: Platzhalter-Liste ---------- */
+
+function savePlaceholderList() {
+  store.set('placeholderList', state.placeholderList);
+  renderChips(true);
+  renderPlaceholderEditor();
+}
+
+function addPlaceholderName(raw) {
+  const name = raw.replace(/[{}]/g, '').trim();
+  if (!PLACEHOLDER_NAME_RE.test(name)) {
+    toast('Bitte mit einem Buchstaben beginnen, höchstens 31 Zeichen');
+    return false;
+  }
+  if (!state.placeholderList.includes(name)) state.placeholderList.push(name);
+  savePlaceholderList();
+  return true;
+}
+
+function renderPlaceholderEditor() {
+  const list = state.placeholderList;
+  $('#placeholder-editor').replaceChildren(...list.map((name, index) => {
+    const move = (delta) => () => {
+      const target = index + delta;
+      [list[index], list[target]] = [list[target], list[index]];
+      savePlaceholderList();
+    };
+    return el('div', { class: 'ph-item' },
+      el('span', { class: 'name' }, `{${name}}`),
+      el('button', { class: 'icon-btn', type: 'button', title: 'Nach oben', 'aria-label': `{${name}} nach oben`, disabled: index === 0, onclick: move(-1) }, icon('up')),
+      el('button', { class: 'icon-btn', type: 'button', title: 'Nach unten', 'aria-label': `{${name}} nach unten`, disabled: index === list.length - 1, onclick: move(1) }, icon('down')),
+      el('button', {
+        class: 'icon-btn',
+        type: 'button',
+        title: 'Aus der Übersicht entfernen',
+        'aria-label': `{${name}} entfernen`,
+        onclick: () => {
+          state.placeholderList = list.filter((n) => n !== name);
+          savePlaceholderList();
+        },
+      }, icon('close')));
+  }));
+
+  // Im Text verwendete Platzhalter, die nicht in der Liste stehen
+  const unlisted = placeholdersIn(state.values).filter((n) => !list.includes(n));
+  const box = $('#placeholder-unlisted');
+  box.hidden = unlisted.length === 0;
+  box.replaceChildren('Im Text verwendet, aber nicht in der Liste: ',
+    ...unlisted.flatMap((name, i) => [i ? ', ' : '', el('button', {
+      class: 'link-btn', type: 'button', title: 'Zur Liste hinzufügen', onclick: () => addPlaceholderName(name),
+    }, `{${name}} hinzufügen`)]));
+}
+
+$('#ph-add-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (addPlaceholderName($('#ph-new').value)) $('#ph-new').value = '';
+  $('#ph-new').focus();
 });
+
+$('#ph-defaults').addEventListener('click', () => {
+  const missing = DEFAULT_PLACEHOLDERS.filter((n) => !state.placeholderList.includes(n));
+  state.placeholderList.push(...missing);
+  savePlaceholderList();
+  toast(missing.length ? `${missing.length} Platzhalter ergänzt` : 'Alle mitgelieferten Platzhalter sind vorhanden');
+});
+
+/* ---------- Einstellungen: Darstellung ---------- */
+
+const THEME_COLORS = { light: '#f5f5f7', dark: '#1c1c1e' };
+
+function applyTheme(choice) {
+  const root = document.documentElement;
+  if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
+  else delete root.dataset.theme;
+  // Farbe der Statusleiste (iPhone): bei fester Wahl überall dieselbe, sonst je nach System
+  for (const meta of $$('meta[name="theme-color"]')) {
+    const systemColor = meta.media.includes('dark') ? THEME_COLORS.dark : THEME_COLORS.light;
+    meta.content = THEME_COLORS[choice] || systemColor;
+  }
+}
+
+function renderThemeSwitch() {
+  const choice = store.get('theme', 'system');
+  $$('#theme-switch [data-theme-choice]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.themeChoice === choice);
+    b.setAttribute('aria-checked', String(b.dataset.themeChoice === choice));
+  });
+}
+
+$$('#theme-switch [data-theme-choice]').forEach((button) => button.addEventListener('click', () => {
+  store.set('theme', button.dataset.themeChoice);
+  applyTheme(button.dataset.themeChoice);
+  renderThemeSwitch();
+}));
+
+applyTheme(store.get('theme', 'system'));
 
 $('#dlg-settings').addEventListener('close', () => {
   renderFields();
@@ -1296,28 +1392,8 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 
 /* ---------- Platzhalter-Übersicht: Bearbeiten ---------- */
 
-$('#vars-edit').addEventListener('click', () => {
-  editingPlaceholders = !editingPlaceholders;
-  $('#vars-edit').textContent = editingPlaceholders ? 'Fertig' : 'Bearbeiten';
-  $('#vars-add').hidden = !editingPlaceholders;
-  renderChips();
-  if (editingPlaceholders) $('#vars-new').focus();
-});
-
-$('#vars-add').addEventListener('submit', (event) => {
-  event.preventDefault();
-  const name = $('#vars-new').value.replace(/[{}]/g, '').trim();
-  if (!PLACEHOLDER_NAME_RE.test(name)) {
-    toast('Bitte mit einem Buchstaben beginnen, höchstens 31 Zeichen');
-    return;
-  }
-  if (!state.placeholderList.includes(name)) {
-    state.placeholderList.push(name);
-    store.set('placeholderList', state.placeholderList);
-  }
-  $('#vars-new').value = '';
-  renderChips();
-});
+// „Bearbeiten“ in der Übersicht öffnet die Einstellungen beim Reiter Platzhalter
+$('#vars-edit').addEventListener('click', () => openSettings('platzhalter'));
 
 /* ---------- Alle Werte leeren, Version ---------- */
 

@@ -14,6 +14,13 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Gewählte Darstellung vor dem ersten Zeichnen setzen (verhindert kurzes Aufblitzen)
+    try {
+      const theme = JSON.parse(localStorage.getItem('promter.theme'));
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch (e) { /* Speicher nicht verfügbar */ }
+  </script>
   <title>Promter</title>
 </head>
 <body data-tab="input">
@@ -103,7 +110,7 @@
         <h2>Platzhalter</h2>
         <span class="vars-hint">Klicken oder in ein Feld ziehen</span>
         <span class="spacer"></span>
-        <button class="link-btn" type="button" id="vars-edit">Bearbeiten</button>
+        <button class="link-btn" type="button" id="vars-edit" title="Platzhalter in den Einstellungen bearbeiten">Bearbeiten</button>
       </div>
       <div class="vars-values-wrap" id="vars-values-wrap" hidden>
         <div class="vars-sub vars-sub-row">
@@ -113,11 +120,7 @@
         <div class="vars-values" id="vars-values"></div>
         <div class="vars-sub vars-sub-insert">Einfügen</div>
       </div>
-      <div class="chips" data-chips data-editable></div>
-      <form class="vars-add" id="vars-add" hidden>
-        <input type="text" class="text-input" id="vars-new" placeholder="Neuer Platzhalter, z. B. Aktenzeichen" autocomplete="off" maxlength="31">
-        <button class="secondary" type="submit">Hinzufügen</button>
-      </form>
+      <div class="chips" data-chips></div>
     </div>
 
     <div class="output-main" id="output-main">
@@ -294,37 +297,66 @@
   </div>
 </dialog>
 
-<!-- Einstellungen -->
+<!-- Einstellungen: alles Bearbeiten an einer Stelle -->
 <dialog id="dlg-settings" class="sheet large">
   <div class="sheet-head">
     <h2>Einstellungen</h2>
     <button class="icon-btn" data-close aria-label="Schließen"><svg class="i"><use href="#i-close"/></svg></button>
   </div>
+  <div class="settings-tabs">
+    <div class="segmented" id="settings-tabs" role="tablist" aria-label="Bereich">
+      <button type="button" role="tab" data-pane="kategorien">Kategorien</button>
+      <button type="button" role="tab" data-pane="platzhalter">Platzhalter</button>
+      <button type="button" role="tab" data-pane="darstellung">Darstellung</button>
+      <button type="button" role="tab" data-pane="daten">Daten</button>
+    </div>
+  </div>
   <div class="sheet-body">
-    <h3>Kategorien</h3>
-    <p class="muted">Reihenfolge, Überschriften, Hinweise und Vorschläge anpassen. So erscheinen sie auch im Prompt.</p>
-    <div id="category-editor" class="category-editor"></div>
-    <div class="row-buttons">
-      <button class="secondary" id="cat-add">Kategorie hinzufügen</button>
-      <button class="secondary" id="cat-reset">Standard wiederherstellen</button>
-    </div>
+    <section class="settings-pane" data-pane="kategorien">
+      <p class="muted">Reihenfolge, Überschriften, Hinweise und Vorschläge anpassen. So erscheinen sie auch im Prompt.</p>
+      <div id="category-editor" class="category-editor"></div>
+      <div class="row-buttons">
+        <button class="secondary" id="cat-add">Kategorie hinzufügen</button>
+        <button class="secondary" id="cat-reset">Standard wiederherstellen</button>
+      </div>
+    </section>
 
-    <h3>Platzhalter</h3>
-    <p class="muted">Die Platzhalter der Übersicht, einer pro Zeile. Die Reihenfolge hier ist auch die Reihenfolge der Schaltflächen.</p>
-    <textarea class="text-input settings-vars" id="settings-vars" rows="6" spellcheck="false"></textarea>
+    <section class="settings-pane" data-pane="platzhalter" hidden>
+      <p class="muted">Die Platzhalter der Übersicht. Die Reihenfolge hier ist auch die Reihenfolge der Schaltflächen.</p>
+      <div id="placeholder-editor" class="placeholder-editor"></div>
+      <div id="placeholder-unlisted" class="unlisted" hidden></div>
+      <form class="ph-add" id="ph-add-form">
+        <input type="text" class="text-input" id="ph-new" placeholder="Neuer Platzhalter, z. B. Aktenzeichen" autocomplete="off" maxlength="33">
+        <button class="secondary" type="submit">Hinzufügen</button>
+      </form>
+      <div class="row-buttons">
+        <button class="secondary" type="button" id="ph-defaults">Mitgelieferte Platzhalter ergänzen</button>
+      </div>
+    </section>
 
-    <h3>Vorlagen</h3>
-    <div class="row-buttons">
-      <button class="secondary" id="templates-restore">Mitgelieferte Vorlagen wiederherstellen</button>
-    </div>
+    <section class="settings-pane" data-pane="darstellung" hidden>
+      <p class="muted">Wähle, ob Promter hell oder dunkel erscheint. „System“ folgt der Einstellung deines Geräts.</p>
+      <div class="segmented theme-switch" id="theme-switch" role="radiogroup" aria-label="Darstellung">
+        <button type="button" data-theme-choice="system">System</button>
+        <button type="button" data-theme-choice="light">Hell</button>
+        <button type="button" data-theme-choice="dark">Dunkel</button>
+      </div>
+    </section>
 
-    <h3>Daten sichern</h3>
-    <p class="muted">Vorlagen und Kategorien als Datei sichern oder auf einem anderen Gerät einlesen, z. B. über iCloud Drive. Das Format ist dasselbe wie in der Mac-App.</p>
-    <div class="row-buttons">
-      <button class="secondary" data-export-open>Exportieren …</button>
-      <button class="secondary" data-import-open>Importieren …</button>
-      <input type="file" id="import-file" accept="application/json,.json" hidden>
-    </div>
+    <section class="settings-pane" data-pane="daten" hidden>
+      <h3>Vorlagen</h3>
+      <div class="row-buttons">
+        <button class="secondary" id="templates-restore">Mitgelieferte Vorlagen wiederherstellen</button>
+      </div>
+
+      <h3>Daten sichern</h3>
+      <p class="muted">Vorlagen und Kategorien als Datei sichern oder auf einem anderen Gerät einlesen, z. B. über iCloud Drive. Das Format ist dasselbe wie in der Mac-App.</p>
+      <div class="row-buttons">
+        <button class="secondary" data-export-open>Exportieren …</button>
+        <button class="secondary" data-import-open>Importieren …</button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </div>
+    </section>
   </div>
   <div class="sheet-foot">
     <span class="spacer"></span>
@@ -359,6 +391,9 @@
 
     <p><b>Feste Werte in Vorlagen:</b> Beim Speichern einer Vorlage kannst du einzelne Werte mitspeichern, z. B. deinen Absender. Sie werden beim Laden automatisch eingesetzt. <code>{Datum}</code> wird nie gespeichert. Mit <b>Alle Werte leeren</b> in der Übersicht startest du frisch in den nächsten Vorgang.</p>
     <p><b>Leere Platzhalter beim Kopieren:</b> Hat ein Platzhalter noch keinen Wert, wird trotzdem kopiert – der Knopf zeigt dann kurz orange, welcher Wert fehlt.</p>
+
+    <h3>Einstellungen</h3>
+    <p>Über das Regler-Symbol oben erreichst du alles, was sich anpassen lässt – aufgeteilt in Reiter: <b>Kategorien</b> (Überschriften, Hinweise, Vorschläge), <b>Platzhalter</b> (Liste der Übersicht sortieren, ergänzen, entfernen), <b>Darstellung</b> (System, Hell oder Dunkel) und <b>Daten</b> (mitgelieferte Vorlagen, Export und Import). „Bearbeiten“ in der Platzhalter-Übersicht führt direkt zum Reiter Platzhalter.</p>
 
     <h3>Prompt prüfen lassen</h3>
     <p><b>Prüfen lassen</b> kopiert deinen Prompt zusammen mit der Bitte, ihn zu bewerten. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung. Kosten entstehen dabei keine.</p>

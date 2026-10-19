@@ -66,7 +66,8 @@ Wahlweise auch mit **XML-Tags** (`<aufgabe>…</aufgabe>`). Sie markieren Anfang
 - **Verlauf:** die letzten 50 kopierten Prompts
 - **Export & Import:** einzelne oder alle Vorlagen als Datei sichern, auf ein anderes Gerät übertragen oder weitergeben
 - **Ein- und ausblenden:** Platzhalter-Übersicht und Ergebnis lassen sich unabhängig voneinander ein- und ausblenden.
-- **Hell und dunkel**, passend zur Systemeinstellung
+- **Einstellungen an einer Stelle:** Kategorien, Vorschläge und Platzhalter in Reitern bearbeiten.
+- **Hell, dunkel oder wie das System** – in den Einstellungen wählbar
 
 ## Auf dem iPhone oder iPad installieren
 
@@ -98,4 +99,4 @@ Danach `http://localhost:8765` im Browser öffnen.
 
 ## Über
 
-Promter wird von [Noerq](https://github.com/Noerq) entwickelt. Aktuelle Web-Version: 2.6. Es gibt Promter auch als App für den Mac (Stand 2.5).
+Promter wird von [Noerq](https://github.com/Noerq) entwickelt. Aktuelle Web-Version: 2.7. Es gibt Promter auch als App für den Mac (Stand 2.5).
