@@ -91,10 +91,6 @@
       </label>
     </div>
 
-    <div class="vars-strip" id="vars-strip" aria-label="Platzhalter">
-      <div class="chips" data-chips></div>
-    </div>
-
     <div class="compact-bar" id="compact-bar">
       <span class="warn-count" id="compact-warnings" hidden></span>
       <span class="count" id="compact-count"></span>
@@ -109,8 +105,6 @@
       <div class="vars-head">
         <h2>Platzhalter</h2>
         <span class="vars-hint">Klicken oder in ein Feld ziehen</span>
-        <span class="spacer"></span>
-        <button class="link-btn" type="button" id="vars-edit" title="Platzhalter in den Einstellungen bearbeiten">Bearbeiten</button>
       </div>
       <div class="vars-values-wrap" id="vars-values-wrap" hidden>
         <div class="vars-sub vars-sub-row">
@@ -387,13 +381,13 @@
     <h3>Platzhalter</h3>
     <p>Platzhalter in geschweiften Klammern, z. B. <code>{Empfänger}</code>, <code>{Thema}</code> oder <code>{Datum}</code>, bleiben in deinen Eingaben stehen und sind farbig markiert. Ihre <b>Werte</b> trägst du rechts in der Übersicht ein (oder beim Laden einer Vorlage). Erst im fertigen Prompt wird der Wert eingesetzt, und zwar überall, wo der Platzhalter vorkommt. Änderst du einen Wert, ändert er sich an allen Stellen. Fehlende Leerzeichen rund um einen Platzhalter ergänzt Promter dabei automatisch, außer vor Satzzeichen. Mit dem Klammer-Symbol <b>{ }</b> oben blendest du die Übersicht ein und aus, auf dem iPhone stehen die Werte in der Ansicht „Ergebnis“. <code>{Datum}</code> ist mit dem heutigen Datum vorausgefüllt, und Promter merkt sich zuletzt verwendete Werte.</p>
 
-    <p><b>Platzhalter-Übersicht:</b> Rechts über dem Ergebnis (auf dem iPhone unten in der Eingabe) stehen deine Platzhalter als kleine Schaltflächen. Antippen fügt den Platzhalter dort ein, wo der Cursor zuletzt stand. Am Mac und iPad kannst du ihn auch an die gewünschte Stelle ziehen. Über <b>Bearbeiten</b> fügst du eigene hinzu oder entfernst welche.</p>
+    <p><b>Platzhalter-Übersicht:</b> Rechts über dem Ergebnis stehen deine Platzhalter als kleine Schaltflächen. Klicken fügt den Platzhalter dort ein, wo der Cursor zuletzt stand; am Mac und iPad kannst du ihn auch an die gewünschte Stelle ziehen. <b>Auf dem iPhone</b> erscheinen die Platzhalter beim Tippen als Leiste direkt über der Tastatur – antippen fügt ein, die Tastatur bleibt offen. Eigene Platzhalter verwaltest du unter <b>Einstellungen → Platzhalter</b>.</p>
 
     <p><b>Feste Werte in Vorlagen:</b> Beim Speichern einer Vorlage kannst du einzelne Werte mitspeichern, z. B. deinen Absender. Sie werden beim Laden automatisch eingesetzt. <code>{Datum}</code> wird nie gespeichert. Mit <b>Alle Werte leeren</b> in der Übersicht startest du frisch in den nächsten Vorgang.</p>
     <p><b>Leere Platzhalter beim Kopieren:</b> Hat ein Platzhalter noch keinen Wert, wird trotzdem kopiert – der Knopf zeigt dann kurz orange, welcher Wert fehlt.</p>
 
     <h3>Einstellungen</h3>
-    <p>Über das Regler-Symbol oben erreichst du alles, was sich anpassen lässt – aufgeteilt in Reiter: <b>Kategorien</b> (Überschriften, Hinweise, Vorschläge), <b>Platzhalter</b> (Liste der Übersicht sortieren, ergänzen, entfernen), <b>Darstellung</b> (System, Hell oder Dunkel) und <b>Daten</b> (mitgelieferte Vorlagen, Export und Import). „Bearbeiten“ in der Platzhalter-Übersicht führt direkt zum Reiter Platzhalter.</p>
+    <p>Über das Regler-Symbol oben erreichst du alles, was sich anpassen lässt – aufgeteilt in Reiter: <b>Kategorien</b> (Überschriften, Hinweise, Vorschläge), <b>Platzhalter</b> (Liste der Übersicht sortieren, ergänzen, entfernen), <b>Darstellung</b> (System, Hell oder Dunkel) und <b>Daten</b> (mitgelieferte Vorlagen, Export und Import).</p>
 
     <h3>Prompt prüfen lassen</h3>
     <p><b>Prüfen lassen</b> kopiert deinen Prompt zusammen mit der Bitte, ihn zu bewerten. In Claude eingefügt bekommst du Stärken, Lücken als Rückfragen und eine verbesserte Fassung. Kosten entstehen dabei keine.</p>
@@ -420,6 +414,11 @@
     </div>
   </div>
 </dialog>
+
+<!-- iPhone: Platzhalter-Leiste direkt über der Tastatur (nur beim Tippen in einem Feld) -->
+<div class="keyboard-bar" id="keyboard-bar" aria-label="Platzhalter einfügen" hidden>
+  <div class="chips" data-chips></div>
+</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

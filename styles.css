@@ -370,7 +370,6 @@ textarea.field-input::placeholder { color: var(--faint); }
   padding: 10px 24px calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--divider);
 }
-.vars-strip + .compact-bar { border-top: 0; }
 
 body.output-hidden .compact-bar { display: flex; }
 
@@ -441,9 +440,6 @@ body.output-hidden .compact-bar { display: flex; }
 .chip.extra { border-style: dashed; }
 
 /* schmale Leiste in der Eingabe (iPhone bzw. bei ausgeblendetem Ergebnis) */
-.vars-strip { display: none; padding: 8px 24px 0; border-top: 1px solid var(--divider); }
-.vars-strip .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
-.vars-strip .chips::-webkit-scrollbar { display: none; }
 
 
 /* Werte der verwendeten Platzhalter */
@@ -727,8 +723,6 @@ kbd {
   body[data-tab="input"] .output-pane { display: none; }
   body[data-tab="output"] .input-pane { display: none; }
   body[data-tab="output"] .output-pane { display: flex; }
-  .vars-strip { display: block; padding: 8px 16px 0; }
-  body.vars-hidden .vars-strip { display: none; }
   /* iPhone: in „Ergebnis“ nur die Werte der verwendeten Platzhalter, eingefügt wird über die Leiste */
   .vars-panel { max-height: 40%; }
   .vars-panel .vars-head, .vars-panel .chips, .vars-panel .vars-sub-insert { display: none; }
@@ -816,3 +810,22 @@ kbd {
 .ph-add { display: flex; gap: 8px; margin-top: 12px; }
 .ph-add .text-input { flex: 1; min-width: 0; }
 .theme-switch button { padding: 7px 18px; }
+
+/* Web 2.8: iPhone – Platzhalter-Leiste über der Tastatur (Position per visualViewport in app.js) */
+.keyboard-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 40;
+  padding: 8px 12px;
+  padding-left: calc(12px + env(safe-area-inset-left));
+  padding-right: calc(12px + env(safe-area-inset-right));
+  background: var(--pane);
+  border-top: 1px solid var(--divider);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  will-change: transform;
+}
+.keyboard-bar .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.keyboard-bar .chips::-webkit-scrollbar { display: none; }
+.keyboard-bar .chip { font-size: 14px; padding: 6px 12px; }

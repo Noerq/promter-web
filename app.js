@@ -26,7 +26,7 @@ const uuid = () => (crypto.randomUUID
     }));
 
 // Versionsstand der Web-App. Die Mac-App ist seit Web 2.6 auf 2.5 eingefroren (siehe MAC-NACHZUG.md).
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 const MAC_VERSION = '2.5';
 
 const HISTORY_LIMIT = 50;
@@ -306,6 +306,21 @@ function renderChips(force = false) {
       // Fokus im Textfeld behalten (sonst schließt sich auf dem iPhone die Tastatur)
       chip.addEventListener('pointerdown', (event) => event.preventDefault());
       chip.addEventListener('click', () => insertPlaceholder(name));
+      // Touch: beim Loslassen einfügen und den Standard verhindern – so bleibt die Tastatur offen
+      // und es folgt kein zweiter Klick. Seitliches Wischen durch die Leiste fügt nichts ein.
+      let touchStart = null;
+      chip.addEventListener('touchstart', (event) => {
+        const t = event.touches[0];
+        touchStart = { x: t.clientX, y: t.clientY };
+      }, { passive: true });
+      chip.addEventListener('touchend', (event) => {
+        const t = event.changedTouches[0];
+        const moved = !touchStart || Math.hypot(t.clientX - touchStart.x, t.clientY - touchStart.y) > 10;
+        touchStart = null;
+        if (moved) return;
+        event.preventDefault();
+        insertPlaceholder(name);
+      });
       chip.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); insertPlaceholder(name); }
       });
@@ -1311,6 +1326,7 @@ function applyOutputVisibility() {
   }
   $('#btn-toggle-output').title = state.showOutput ? 'Ergebnis ausblenden' : 'Ergebnis einblenden';
   $('#btn-toggle-vars').title = state.showPlaceholders ? 'Platzhalter ausblenden' : 'Platzhalter einblenden';
+  if (typeof updateKeyboardBar === 'function') updateKeyboardBar();
   requestAnimationFrame(growAll);
 }
 
@@ -1390,10 +1406,38 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline-Modus weiter */ });
 }
 
-/* ---------- Platzhalter-Übersicht: Bearbeiten ---------- */
+/* ---------- iPhone: Platzhalter-Leiste über der Tastatur ---------- */
 
-// „Bearbeiten“ in der Übersicht öffnet die Einstellungen beim Reiter Platzhalter
-$('#vars-edit').addEventListener('click', () => openSettings('platzhalter'));
+const keyboardBar = $('#keyboard-bar');
+const narrowScreen = matchMedia('(max-width: 760px)');
+
+/** Oberkante der Leiste: unterer Rand des sichtbaren Bereichs (= Oberkante der Tastatur) minus Leistenhöhe */
+function keyboardBarTop(viewportOffsetTop, viewportHeight, barHeight) {
+  return Math.max(0, viewportOffsetTop + viewportHeight - barHeight);
+}
+
+function positionKeyboardBar() {
+  if (keyboardBar.hidden) return;
+  const vv = window.visualViewport;
+  const top = vv
+    ? keyboardBarTop(vv.offsetTop, vv.height, keyboardBar.offsetHeight)
+    : keyboardBarTop(0, window.innerHeight, keyboardBar.offsetHeight);
+  keyboardBar.style.transform = `translateY(${top}px)`;
+}
+
+function updateKeyboardBar() {
+  const editing = document.activeElement?.matches?.('textarea.field-input');
+  keyboardBar.hidden = !(editing && narrowScreen.matches && state.showPlaceholders);
+  positionKeyboardBar();
+}
+
+document.addEventListener('focusin', updateKeyboardBar);
+// Kurz warten: beim Wechsel zwischen zwei Feldern kommt erst focusout, dann focusin
+document.addEventListener('focusout', () => setTimeout(updateKeyboardBar, 60));
+// Tastatur auf/zu ändert die Höhe des sichtbaren Bereichs – dabei auch die Sichtbarkeit neu prüfen
+window.visualViewport?.addEventListener('resize', updateKeyboardBar);
+window.visualViewport?.addEventListener('scroll', positionKeyboardBar);
+narrowScreen.addEventListener('change', updateKeyboardBar);
 
 /* ---------- Alle Werte leeren, Version ---------- */
 
