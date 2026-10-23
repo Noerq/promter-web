@@ -11,12 +11,50 @@ const store = {
       return fallback;
     }
   },
+  /** Speichert und meldet Erfolg. Ist der Speicher voll, werden zuerst die ältesten Verlaufseinträge geopfert. */
   set(key, value) {
-    try { localStorage.setItem('promter.' + key, JSON.stringify(value)); } catch { /* Speicher nicht verfügbar */ }
+    for (;;) {
+      try {
+        localStorage.setItem('promter.' + key, JSON.stringify(value));
+        return true;
+      } catch (error) {
+        if (!isQuotaError(error) || !shrinkHistory()) {
+          reportStorageFailure();
+          return false;
+        }
+        if (key === 'history') value = state.history; // den gekürzten Verlauf speichern
+      }
+    }
   },
 };
 
+const isQuotaError = (error) => error?.name === 'QuotaExceededError' || error?.code === 22 || error?.code === 1014;
+
+/** Halbiert den Verlauf, um Platz zu schaffen; false, wenn nichts mehr zu kürzen ist */
+function shrinkHistory() {
+  if (state.history.length <= 1) return false;
+  state.history = state.history.slice(0, Math.floor(state.history.length / 2));
+  try { localStorage.setItem('promter.history', JSON.stringify(state.history)); } catch { /* nächster Durchlauf kürzt weiter */ }
+  return true;
+}
+
+const STORAGE_FAILED = 'Speichern fehlgeschlagen – der Speicher ist voll oder gesperrt. Vorlagen sichern: Einstellungen → Daten → Exportieren.';
+let storageWarnedAt = 0;
+function reportStorageFailure() {
+  if (Date.now() - storageWarnedAt < 10000) return;
+  storageWarnedAt = Date.now();
+  // Verzögert, weil das beim Start auftreten kann, bevor die Oberfläche bereit ist
+  setTimeout(() => toast(STORAGE_FAILED, 6000));
+}
+
 const clone = (value) => JSON.parse(JSON.stringify(value));
+
+const isPlainObject = (value) => !!value && typeof value === 'object' && !Array.isArray(value);
+
+/** Nur Einträge mit Text behalten – schützt vor kaputten Import-Dateien oder gespeicherten Daten */
+const textValues = (values) => (isPlainObject(values)
+  ? Object.fromEntries(Object.entries(values).filter(([, v]) => typeof v === 'string'))
+  : {});
 
 const uuid = () => (crypto.randomUUID
   ? crypto.randomUUID()
@@ -26,24 +64,35 @@ const uuid = () => (crypto.randomUUID
     }));
 
 // Versionsstand der Web-App. Die Mac-App ist seit Web 2.6 auf 2.5 eingefroren (siehe MAC-NACHZUG.md).
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 const MAC_VERSION = '2.5';
+
+/** Gespeicherte Vorlagen; Werte, die kein Text sind (z. B. aus einer kaputten Import-Datei), fallen weg */
+function storedTemplates() {
+  const templates = store.get('templates', clone(DEFAULT_TEMPLATES));
+  if (!Array.isArray(templates)) return clone(DEFAULT_TEMPLATES);
+  return templates.filter(isPlainObject).map((t) => {
+    const template = { ...t, name: String(t.name ?? ''), values: textValues(t.values) };
+    if (t.placeholderValues) template.placeholderValues = textValues(t.placeholderValues);
+    return template;
+  });
+}
 
 const HISTORY_LIMIT = 50;
 const LARGE_FIELDS = new Set(['material', 'beispiele', 'kontext']);
 
 const state = {
   categories: store.get('categories', clone(DEFAULT_CATEGORIES)),
-  templates: store.get('templates', clone(DEFAULT_TEMPLATES)),
+  templates: storedTemplates(),
   history: store.get('history', []),
-  values: store.get('values', {}),
+  values: textValues(store.get('values', {})),
   ask: store.get('ask', false),
   format: store.get('format', 'headings'),
   showOutput: store.get('showOutput', true),
   showPlaceholders: store.get('showPlaceholders', true),
   placeholderList: store.get('placeholderList', [...DEFAULT_PLACEHOLDERS]),
   // Werte der Platzhalter – sie werden erst im fertigen Prompt eingesetzt
-  placeholderValues: store.get('placeholderValues', {}),
+  placeholderValues: textValues(store.get('placeholderValues', {})),
 };
 
 const saveCategories = () => store.set('categories', state.categories);
@@ -82,6 +131,7 @@ const saveDraft = () => {
 
 const QUESTIONS_TEXT = 'Falls dir Informationen fehlen, stelle mir zuerst Rückfragen, bevor du antwortest.';
 const clean = (s) => (s || '').trim();
+const titleOf = (category) => clean(category.title) || 'Ohne Titel';
 
 function xmlTag(title) {
   let s = title.toLowerCase();
@@ -95,7 +145,7 @@ function xmlTag(title) {
 
 function buildPrompt() {
   const sections = state.categories
-    .map((c) => [c.title, clean(substitutePlaceholders(state.values[c.id]))])
+    .map((c) => [titleOf(c), clean(substitutePlaceholders(state.values[c.id]))])
     .filter(([, text]) => text);
   if (state.ask && sections.length) sections.push(['Rückfragen', QUESTIONS_TEXT]);
 
@@ -117,8 +167,13 @@ function warnings() {
     const task = text('aufgabe');
     if (!task) result.push('Die Aufgabe fehlt – ohne sie weiß die KI nicht, was sie tun soll.');
     else if ([...task].length < 25) result.push('Die Aufgabe ist sehr knapp. Je genauer, desto besser das Ergebnis.');
+    // „Beantworte die unten eingefügte E-Mail“ – aber es ist nichts eingefügt
+    const material = state.categories.find((c) => c.id === 'material');
+    if (material && /unten eingefügt/i.test(task) && !text('material')) {
+      result.push(`Die Aufgabe verweist auf unten eingefügten Text, aber „${titleOf(material)}“ ist leer.`);
+    }
   }
-  const placeholders = state.categories.filter((c) => text(c.id).includes('…')).map((c) => c.title);
+  const placeholders = state.categories.filter((c) => text(c.id).includes('…')).map(titleOf);
   if (placeholders.length) result.push(`Platzhalter „…“ noch ergänzen in: ${placeholders.join(', ')}.`);
   if (has('kontext') && !text('kontext')) result.push('Kein Kontext – Hintergrundinfos verbessern das Ergebnis meist deutlich.');
   if (has('rolle') && !text('rolle')) result.push('Tipp: Eine Rolle hilft der KI, den passenden Blickwinkel einzunehmen.');
@@ -130,6 +185,13 @@ function warnings() {
 // Beginnt mit einem Buchstaben, dann Buchstaben/Ziffern/Leerzeichen/-/_ – so werden z. B.
 // geschweifte Klammern in eingefügtem Code oder JSON nicht als Platzhalter erkannt.
 const PLACEHOLDER_RE = /\{(\p{L}[\p{L}\p{N} _-]{0,30})\}/gu;
+
+/** Eingaben der vorhandenen Kategorien – Werte gelöschter Kategorien bleiben gespeichert, zählen aber nicht */
+function activeValues() {
+  return Object.fromEntries(state.categories
+    .filter((c) => typeof state.values[c.id] === 'string')
+    .map((c) => [c.id, state.values[c.id]]));
+}
 
 function placeholdersIn(values) {
   const names = new Set();
@@ -154,7 +216,7 @@ const NO_SPACE_BEFORE_NEXT = /[\s.,;:!?)\]}“"'»‘›\/-]/u;
 
 /**
  * Setzt die Werte der Platzhalter ein; Platzhalter ohne Wert bleiben als {Name} stehen.
- * Fehlende Leerzeichen rund um einen eingesetzten Wert werden ergänzt (nicht vor Satzzeichen).
+ * Fehlende Leerzeichen rund um einen eingesetzten Wert werden ergänzt (nicht vor Satzzeichen und Endungen).
  */
 function substitutePlaceholders(text) {
   const source = text || '';
@@ -172,7 +234,8 @@ function substitutePlaceholders(text) {
     const prev = result[result.length - 1];
     const next = source[last];
     const before = prev && !NO_SPACE_AFTER_PREV.test(prev) ? ' ' : '';
-    const after = next && next !== '{' && !NO_SPACE_BEFORE_NEXT.test(next) ? ' ' : '';
+    // Ein Kleinbuchstabe direkt dahinter ist eine Endung: „{Firma}s“ wird zu „Müllers“
+    const after = next && next !== '{' && !NO_SPACE_BEFORE_NEXT.test(next) && !/\p{Ll}/u.test(next) ? ' ' : '';
     result += before + value + after;
   }
   return result + source.slice(last);
@@ -180,7 +243,7 @@ function substitutePlaceholders(text) {
 
 /** Verwendete Platzhalter, die noch keinen Wert haben */
 function missingPlaceholders() {
-  return placeholdersIn(state.values).filter((name) => !clean(state.placeholderValues[name]));
+  return placeholdersIn(activeValues()).filter((name) => !clean(state.placeholderValues[name]));
 }
 
 function rememberValue(name, value) {
@@ -208,7 +271,7 @@ function fillPlaceholders(filled) {
 }
 
 function openPlaceholderDialog() {
-  const names = placeholdersIn(state.values);
+  const names = placeholdersIn(activeValues());
   if (!names.length) return;
   const inputs = names.map((name) => {
     const input = el('input', { class: 'text-input', type: 'text', autocomplete: 'off', placeholder: name });
@@ -256,7 +319,7 @@ function insertPlaceholder(name) {
 
 function renderPlaceholderValues(force) {
   const container = $('#vars-values');
-  const used = placeholdersIn(state.values);
+  const used = placeholdersIn(activeValues());
   $('#vars-clear').hidden = !used.some((name) => clean(state.placeholderValues[name]));
   const signature = JSON.stringify(used);
   if (!force && container.dataset.signature === signature) {
@@ -287,7 +350,7 @@ function renderPlaceholderValues(force) {
 
 function renderChips(force = false) {
   renderPlaceholderValues(force);
-  const used = new Set(placeholdersIn(state.values));
+  const used = new Set(placeholdersIn(activeValues()));
   const names = [...state.placeholderList, ...[...used].filter((n) => !state.placeholderList.includes(n))];
 
   for (const container of $$('[data-chips]')) {
@@ -353,7 +416,22 @@ Antworte in drei kurzen Abschnitten:
 /* ================= Vorschläge ================= */
 
 const presetsOf = (c) => (c.presets || []).map((p) => p.trim()).filter(Boolean);
-const containsPreset = (preset, id) => (state.values[id] || '').includes(preset);
+const isWordChar = (ch) => !!ch && /[\p{L}\p{N}]/u.test(ch);
+
+/**
+ * Position eines Vorschlags im Text, nur als ganzes Wort – „formell“ steckt so nicht in „informell“.
+ * Grenzen werden nur dort geprüft, wo der Vorschlag selbst mit einem Buchstaben oder einer Ziffer beginnt bzw. endet.
+ */
+function presetIndex(text, preset) {
+  const checkStart = isWordChar(preset[0]);
+  const checkEnd = isWordChar(preset[preset.length - 1]);
+  for (let i = text.indexOf(preset); i !== -1; i = text.indexOf(preset, i + 1)) {
+    if ((!checkStart || !isWordChar(text[i - 1])) && (!checkEnd || !isWordChar(text[i + preset.length]))) return i;
+  }
+  return -1;
+}
+
+const containsPreset = (preset, id) => presetIndex(state.values[id] || '', preset) !== -1;
 
 function appendPreset(preset, id) {
   const current = clean(state.values[id]);
@@ -366,15 +444,16 @@ function appendPreset(preset, id) {
 }
 
 function removePreset(preset, id) {
-  let text = state.values[id] || '';
-  for (const pattern of [', ' + preset, preset + ', ', ' ' + preset, preset + ' ', preset]) {
-    const index = text.indexOf(pattern);
-    if (index !== -1) {
-      text = text.slice(0, index) + text.slice(index + pattern.length);
-      break;
-    }
-  }
-  state.values[id] = text.trim();
+  const text = state.values[id] || '';
+  let start = presetIndex(text, preset);
+  if (start === -1) return;
+  let end = start + preset.length;
+  // Trennzeichen („, “ oder Leerzeichen) mitentfernen: bevorzugt das danach, am Ende das davor
+  const after = text.slice(end).match(/^(?:,[ \t]*|[ \t]+)/);
+  const before = text.slice(0, start).match(/(?:,[ \t]*|[ \t]+)$/);
+  if (after && end + after[0].length < text.length) end += after[0].length;
+  else if (before) start -= before[0].length;
+  state.values[id] = (text.slice(0, start) + text.slice(end)).trim();
 }
 
 /* ================= DOM-Helfer ================= */
@@ -406,15 +485,21 @@ function icon(name) {
 }
 
 let toastTimer;
-function toast(message) {
+function toast(message, duration = 1800) {
   const node = $('#toast');
   node.textContent = message;
   node.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => node.classList.remove('show'), 1800);
+  toastTimer = setTimeout(() => node.classList.remove('show'), duration);
 }
 
-function grow(textarea) {
+function grow(textarea, onlyGrow = false) {
+  // Beim Weitertippen genügt Vergrößern – das Zurücksetzen auf „auto“ ist bei langen Texten spürbar langsam
+  if (onlyGrow) {
+    const height = textarea.scrollHeight + 2;
+    if (height > textarea.offsetHeight) textarea.style.height = height + 'px';
+    return;
+  }
   textarea.style.height = 'auto';
   textarea.style.height = textarea.scrollHeight + 2 + 'px';
 }
@@ -437,13 +522,14 @@ function fieldView(category) {
   const backdrop = el('div', { class: 'field-backdrop', 'aria-hidden': 'true' });
   paintBackdrop(backdrop, textarea.value);
   textarea.addEventListener('input', () => {
+    const longer = textarea.value.length > (state.values[category.id] || '').length;
     state.values[category.id] = textarea.value;
     paintBackdrop(backdrop, textarea.value);
-    grow(textarea);
+    grow(textarea, longer);
     changed();
   });
 
-  const head = el('div', { class: 'field-head' }, el('label', { for: id }, category.title));
+  const head = el('div', { class: 'field-head' }, el('label', { for: id }, titleOf(category)));
   if (presetsOf(category).length) {
     head.append(el('button', {
       class: 'presets-btn',
@@ -468,7 +554,7 @@ function renderFields() {
   $('#fields').replaceChildren(...core.map(fieldView));
   $('#optional-fields').replaceChildren(...optional.map(fieldView));
   $('#optional').hidden = optional.length === 0;
-  $('#optional-paren').textContent = `(${optional.map((c) => c.title).join(', ')})`;
+  $('#optional-paren').textContent = `(${optional.map(titleOf).join(', ')})`;
   $('#ask').checked = state.ask;
   requestAnimationFrame(growAll);
   updatePresetCounts();
@@ -529,10 +615,17 @@ function updateOutput() {
   renderChips();
 }
 
+const LARGE_INPUT = 100000;
+let outputTimer;
+
 function changed() {
   saveDraft();
-  updateOutput();
   updatePresetCounts();
+  // Bei sehr langen Eingaben das Ergebnis erst nach einer kurzen Tipppause neu zeichnen – sonst stockt das Tippen
+  clearTimeout(outputTimer);
+  const size = Object.values(activeValues()).reduce((sum, value) => sum + value.length, 0);
+  if (size > LARGE_INPUT) outputTimer = setTimeout(updateOutput, 300);
+  else updateOutput();
 }
 
 /* ================= Kopieren / Teilen / Verlauf ================= */
@@ -627,7 +720,7 @@ for (const dialog of $$('dialog')) {
 /* ---------- Vorschläge (Mehrfachauswahl) ---------- */
 
 function openPresets(category) {
-  $('#presets-title').textContent = category.title;
+  $('#presets-title').textContent = titleOf(category);
   const boxes = [];
   const refresh = () => boxes.forEach(({ box, preset }) => { box.checked = containsPreset(preset, category.id); });
 
@@ -658,9 +751,9 @@ function openPresets(category) {
 /* ---------- Vorlagen ---------- */
 
 function applyValues(values, askQuestions, placeholderValues) {
-  state.values = clone(values || {});
+  state.values = textValues(values);
   state.ask = !!askQuestions;
-  if (placeholderValues) state.placeholderValues = { ...state.placeholderValues, ...placeholderValues };
+  if (placeholderValues) state.placeholderValues = { ...state.placeholderValues, ...textValues(placeholderValues) };
   saveDraft();
   renderFields();
   updateOutput();
@@ -687,7 +780,7 @@ function requestLoad({ title, values, askQuestions, placeholderValues, askAlways
     finish(mode);
     if (askAlways || missingPlaceholders().length) openPlaceholderDialog();
   };
-  const hasInput = Object.keys(filledValues(state.values)).length > 0;
+  const hasInput = Object.keys(filledValues(activeValues())).length > 0;
   if (!hasInput || sameValues(state.values, values)) {
     applyValues(values, askQuestions, placeholderValues);
     done('replace');
@@ -796,7 +889,7 @@ function savedValuesSummary(template) {
 
 /** Platzhalter, deren Wert sich mitspeichern lässt: im Text verwendet, mit Wert, nicht {Datum} */
 function saveablePlaceholders() {
-  return placeholdersIn(state.values)
+  return placeholdersIn(activeValues())
     .filter((name) => !/^datum$/i.test(name) && clean(state.placeholderValues[name]));
 }
 
@@ -832,8 +925,12 @@ $('#save-name').addEventListener('input', () => {
 $('#save-form').addEventListener('submit', (event) => {
   event.preventDefault();
   const name = $('#save-name').value.trim();
-  if (!name) return;
-  const values = Object.fromEntries(Object.entries(state.values).filter(([, v]) => clean(v)));
+  if (!name) {
+    toast('Bitte einen Namen eingeben');
+    $('#save-name').focus();
+    return;
+  }
+  const values = Object.fromEntries(Object.entries(activeValues()).filter(([, v]) => clean(v)));
   // Angehakte Werte mitspeichern ({Datum} steht gar nicht zur Auswahl)
   const keep = $$('#save-vars-list input:checked').map((box) => box.dataset.name);
   const placeholderValues = Object.fromEntries(keep.map((n) => [n, state.placeholderValues[n].trim()]));
@@ -848,10 +945,11 @@ $('#save-form').addEventListener('submit', (event) => {
     if (keep.length) template.placeholderValues = placeholderValues;
     state.templates.push(template);
   }
-  saveTemplates();
+  const saved = saveTemplates();
   renderTemplateList();
   $('#dlg-save').close();
-  toast(`Vorlage „${name}“ gespeichert`);
+  if (saved) toast(`Vorlage „${name}“ gespeichert`);
+  else setTimeout(() => toast(STORAGE_FAILED, 6000));
 });
 
 /* ---------- Verlauf ---------- */
@@ -864,7 +962,7 @@ function renderHistory() {
   }
   const format = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
   list.replaceChildren(...state.history.map((entry) => {
-    const task = clean(entry.values?.aufgabe);
+    const task = clean(textValues(entry.values).aufgabe);
     return el('li', {}, el('button', {
       class: 'item',
       type: 'button',
@@ -872,7 +970,9 @@ function renderHistory() {
         title: 'Eintrag aus dem Verlauf laden?',
         values: entry.values,
         askQuestions: entry.askQuestions,
-        placeholderValues: entry.placeholderValues,
+        // {Datum} bekommt das heutige Datum statt des Datums aus dem alten Eintrag
+        placeholderValues: Object.fromEntries(Object.entries(textValues(entry.placeholderValues))
+          .map(([name, value]) => [name, /^datum$/i.test(name) ? today() : value])),
         askAlways: false,
         done: (mode) => {
           $('#dlg-history').close();
@@ -904,7 +1004,7 @@ function renderCategoryEditor(openId) {
   editor.replaceChildren(...state.categories.map((category, index) => {
     const item = el('details', { class: 'cat-item', open: category.id === openId });
 
-    const nameNode = el('span', { class: 'name' }, category.title || 'Ohne Titel');
+    const nameNode = el('span', { class: 'name' }, titleOf(category));
     const tagNode = el('span', { class: 'tag' }, category.isOptional ? 'optional' : '');
     const move = (delta) => (event) => {
       event.preventDefault();
@@ -924,7 +1024,7 @@ function renderCategoryEditor(openId) {
     const title = el('input', { class: 'text-input', type: 'text', value: category.title });
     title.addEventListener('input', () => {
       category.title = title.value;
-      nameNode.textContent = title.value || 'Ohne Titel';
+      nameNode.textContent = titleOf(category);
       saveCategories();
     });
 
@@ -950,7 +1050,7 @@ function renderCategoryEditor(openId) {
       class: 'secondary danger',
       type: 'button',
       onclick: () => {
-        if (!confirm(`Kategorie „${category.title}“ löschen?`)) return;
+        if (!confirm(`Kategorie „${titleOf(category)}“ löschen?`)) return;
         state.categories = state.categories.filter((c) => c.id !== category.id);
         saveCategories();
         renderCategoryEditor();
@@ -1040,7 +1140,7 @@ function renderPlaceholderEditor() {
   }));
 
   // Im Text verwendete Platzhalter, die nicht in der Liste stehen
-  const unlisted = placeholdersIn(state.values).filter((n) => !list.includes(n));
+  const unlisted = placeholdersIn(activeValues()).filter((n) => !list.includes(n));
   const box = $('#placeholder-unlisted');
   box.hidden = unlisted.length === 0;
   box.replaceChildren('Im Text verwendet, aber nicht in der Liste: ',
@@ -1115,11 +1215,11 @@ $('#cat-reset').addEventListener('click', () => {
 /* ---------- Export / Import (gleiches Format wie die Mac-App) ---------- */
 
 function validCategory(c) {
-  return c && typeof c.id === 'string' && typeof c.title === 'string';
+  return isPlainObject(c) && typeof c.id === 'string' && c.id.trim() !== '' && typeof c.title === 'string';
 }
 
 function validTemplate(t) {
-  return t && typeof t.name === 'string' && t.values && typeof t.values === 'object';
+  return isPlainObject(t) && typeof t.name === 'string' && t.name.trim() !== '' && isPlainObject(t.values);
 }
 
 /** Liste mit Häkchen; liefert eine Funktion, die die angehakten Einträge zurückgibt. */
@@ -1225,7 +1325,9 @@ $('#import-file').addEventListener('change', async (event) => {
 
   // Akzeptiert Export-Dateien sowie die Dateien der Mac-App (templates.json / categories.json)
   const templates = (Array.isArray(data) ? data : (data.templates || [])).filter(validTemplate);
-  const categories = (Array.isArray(data) ? data : (data.categories || [])).filter(validCategory).filter((c) => !validTemplate(c));
+  const categories = (Array.isArray(data) ? data : (data.categories || [])).filter(validCategory).filter((c) => !validTemplate(c))
+    // Jede Kategorie-ID nur einmal – doppelte würden zwei Felder mit demselben Inhalt erzeugen
+    .filter((c, i, all) => all.findIndex((x) => x.id === c.id) === i);
   if (!templates.length && !categories.length) {
     alert('In der Datei wurden keine Vorlagen oder Kategorien gefunden.');
     return;
@@ -1248,7 +1350,7 @@ $('#import-file').addEventListener('change', async (event) => {
   $('#import-cats-row').hidden = categories.length === 0;
   $('#import-cats').checked = false;
   $('#import-cats').onchange = updateImportSummary;
-  $('#import-cats-label').replaceChildren(`${categories.length} Kategorien übernehmen`,
+  $('#import-cats-label').replaceChildren(`${categories.length} ${categories.length === 1 ? 'Kategorie' : 'Kategorien'} übernehmen`,
     el('span', { class: 'sub' }, 'ersetzt deine aktuellen Kategorien'));
   updateImportSummary();
   openDialog('dlg-import');
@@ -1263,28 +1365,26 @@ $('#import-confirm').addEventListener('click', () => {
     const entry = {
       id: typeof template.id === 'string' && !idTaken ? template.id : uuid(),
       name: template.name,
-      values: template.values,
+      values: textValues(template.values),
       askQuestions: !!template.askQuestions,
     };
-    if (template.placeholderValues && typeof template.placeholderValues === 'object') {
-      entry.placeholderValues = Object.fromEntries(Object.entries(template.placeholderValues)
-        .filter(([k, v]) => typeof k === 'string' && typeof v === 'string' && clean(v)));
-    }
+    const placeholderValues = Object.entries(textValues(template.placeholderValues)).filter(([, v]) => clean(v));
+    if (placeholderValues.length) entry.placeholderValues = Object.fromEntries(placeholderValues);
     if (index === -1) state.templates.push(entry);
     else state.templates[index] = entry;
   }
-  saveTemplates();
+  let saved = saveTemplates();
 
   const takeCategories = $('#import-cats').checked;
   if (takeCategories) {
     state.categories = importData.categories.map((c) => ({
       id: c.id,
       title: c.title,
-      hint: c.hint || '',
+      hint: typeof c.hint === 'string' ? c.hint : '',
       isOptional: !!c.isOptional,
       presets: Array.isArray(c.presets) ? c.presets.filter((p) => typeof p === 'string') : [],
     }));
-    saveCategories();
+    saved = saveCategories() && saved;
     renderFields();
     updateOutput();
   }
@@ -1292,7 +1392,8 @@ $('#import-confirm').addEventListener('click', () => {
   $('#dlg-import').close();
   if ($('#dlg-templates').open) renderTemplateList();
   if ($('#dlg-settings').open) renderCategoryEditor();
-  toast(`${selected.length} Vorlage(n) importiert${takeCategories ? ', Kategorien übernommen' : ''}`);
+  if (saved) toast(`${selected.length} Vorlage(n) importiert${takeCategories ? ', Kategorien übernommen' : ''}`);
+  else setTimeout(() => toast(STORAGE_FAILED, 6000));
 });
 
 $$('[data-export-open]').forEach((b) => b.addEventListener('click', openExport));
@@ -1302,7 +1403,7 @@ $$('[data-import-open]').forEach((b) => b.addEventListener('click', () => $('#im
 
 $('#btn-help').addEventListener('click', () => {
   $('#help-categories').replaceChildren(...state.categories.flatMap((c) => [
-    el('dt', {}, c.title, c.isOptional ? el('span', { class: 'tag' }, 'optional') : null),
+    el('dt', {}, titleOf(c), c.isOptional ? el('span', { class: 'tag' }, 'optional') : null),
     el('dd', {}, c.hint || ''),
   ]));
   openDialog('dlg-help');

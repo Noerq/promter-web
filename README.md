@@ -99,4 +99,4 @@ Danach `http://localhost:8765` im Browser öffnen.
 
 ## Über
 
-Promter wird von [Noerq](https://github.com/Noerq) entwickelt. Aktuelle Web-Version: 2.8. Es gibt Promter auch als App für den Mac (Stand 2.5).
+Promter wird von [Noerq](https://github.com/Noerq) entwickelt. Aktuelle Web-Version: 2.9. Es gibt Promter auch als App für den Mac (Stand 2.5).
